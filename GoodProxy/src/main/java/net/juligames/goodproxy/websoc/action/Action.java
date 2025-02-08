@@ -19,7 +19,12 @@ public enum Action {
     READ_PM_INBOX,
     GET_BALANCE,
     SEND_PM,
-    MOTD;
+
+    MOTD, // Response and Request
+
+    DISPLAY_MESSAGE("displayMessage"), // Response and Request
+    INBOX,
+    PM_INBOX;
 
 
     private final @NotNull String action;

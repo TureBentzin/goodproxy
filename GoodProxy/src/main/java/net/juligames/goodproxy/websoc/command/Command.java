@@ -1,6 +1,7 @@
 package net.juligames.goodproxy.websoc.command;
 
 
+import net.juligames.goodproxy.websoc.action.Action;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface Command {
 
+    @NotNull Action getResponseAction();
 
     @NotNull PackedCommand pack();
 }

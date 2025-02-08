@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
+import java.util.function.Consumer;
 
 /**
  * @author Ture Bentzin
@@ -18,7 +19,7 @@ public class WebsocketManager {
 
     private static final @NotNull Logger LOGGER = LogManager.getLogger(WebsocketManager.class);
 
-    public boolean openNewConnection() {
+    public boolean openNewConnection(@NotNull Consumer<Session> action) {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         //TODO config
         String uriString = BankingAPI.API_URL;
@@ -26,6 +27,7 @@ public class WebsocketManager {
         try {
             URI uri = new URI(uriString);
             try(final Session session =  container.connectToServer(BankClient.class, uri)) {
+                action.accept(session);
             }
         } catch (Exception e) {
             LOGGER.error("Failed to open connection to {}", uriString, e);

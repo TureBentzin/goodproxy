@@ -18,6 +18,13 @@ public class BankClient {
     private final @NotNull Logger LOGGER = LogManager.getLogger();
     private @Nullable Session session;
 
+    protected @NotNull Session session() {
+        if (session == null) {
+            throw new IllegalStateException("Session not connected");
+        }
+        return session;
+    }
+
     @OnOpen
     public void onOpen(@NotNull Session session) {
         this.session = session;
@@ -29,7 +36,7 @@ public class BankClient {
     public void onMessage(@NotNull String message) {
         LOGGER.info("Received message: {}", message);
         PackedCommand packedCommand = PackedCommand.fromJson(message);
-        BankingAPI.handleCommand(packedCommand);
+        BankingAPI.handleCommand(session(), packedCommand);
     }
 
     @OnClose

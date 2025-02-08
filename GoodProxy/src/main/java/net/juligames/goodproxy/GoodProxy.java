@@ -21,6 +21,8 @@ public class GoodProxy {
         LOGGER.info("Hello World!");
 
         WebsocketManager websocketManager = new WebsocketManager();
-        boolean success = websocketManager.openNewConnection();
+        boolean success = websocketManager.openNewConnection(session -> {
+            LOGGER.info("Received session: {}", session.getId());
+        });
     }
 }
