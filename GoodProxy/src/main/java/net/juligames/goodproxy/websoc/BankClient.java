@@ -2,7 +2,9 @@ package net.juligames.goodproxy.websoc;
 
 
 import jakarta.websocket.ClientEndpoint;
+import jakarta.websocket.OnClose;
 import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +19,12 @@ public class BankClient {
 
 
     private final @NotNull Logger LOGGER = LogManager.getLogger();
+
+    @OnOpen
+    public void onOpen() {
+        LOGGER.info("Connection opened");
+    }
+
 
     @OnMessage
     public void onMessage(@NotNull String message) {
