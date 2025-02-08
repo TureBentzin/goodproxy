@@ -1,4 +1,4 @@
-package net.juligames.goodproxy.websoc.commands;
+package net.juligames.goodproxy.websoc.command;
 
 
 import org.jetbrains.annotations.NotNull;

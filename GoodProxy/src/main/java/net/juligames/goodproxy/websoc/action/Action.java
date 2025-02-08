@@ -35,4 +35,18 @@ public enum Action {
     public @NotNull String getActionString() {
         return action;
     }
+
+    public static @Nullable Action fromString(@NotNull String action) {
+        for (Action a : values()) {
+            if (a.action.equals(action)) {
+                return a;
+            }
+        }
+        for (Action a : values()) {
+            if (a.name().toLowerCase().equals(action)) {
+                return a;
+            }
+        }
+        return null;
+    }
 }

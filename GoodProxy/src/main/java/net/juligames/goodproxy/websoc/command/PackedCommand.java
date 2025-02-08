@@ -1,17 +1,29 @@
-package net.juligames.goodproxy.websoc.commands;
+package net.juligames.goodproxy.websoc.command;
 
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import net.juligames.goodproxy.json.ActionDeserializer;
+import net.juligames.goodproxy.json.ActionSerializer;
 import net.juligames.goodproxy.websoc.action.Action;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.AccessFlag;
 
 /**
  * @author Ture Bentzin
  * @since 08-02-2025
  */
 public class PackedCommand {
+
+    private static final @NotNull Gson GSON;
+
+    static {
+        GsonBuilder builder = new GsonBuilder();
+        builder.registerTypeAdapter(Action.class, new ActionSerializer());
+        builder.registerTypeAdapter(Action.class, new ActionDeserializer());
+
+        GSON = builder.create();
+    }
 
     private final @NotNull Action action;
 
@@ -24,7 +36,7 @@ public class PackedCommand {
     private final @Nullable String value4;
 
 
-    private PackedCommand(@NotNull Action action, @Nullable String value1, @Nullable String value2, @Nullable String value3, @Nullable String value4) {
+    public PackedCommand(@NotNull Action action, @Nullable String value1, @Nullable String value2, @Nullable String value3, @Nullable String value4) {
         this.action = action;
         this.value1 = value1;
         this.value2 = value2;
@@ -50,6 +62,10 @@ public class PackedCommand {
 
     public static @NotNull PackedCommand create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3, @NotNull String value4) {
         return new PackedCommand(action, value1, value2, value3, value4);
+    }
+
+    public static @NotNull PackedCommand fromJson(@NotNull String maybeJason) {
+        return GSON.fromJson(maybeJason, PackedCommand.class);
     }
 
     public @NotNull Action getAction() {
@@ -100,7 +116,7 @@ public class PackedCommand {
     }
 
     public @NotNull String toJson() {
-        return "{\"action\":\"" + action.getActionString() + "\",\"value1\":\"" + (value1 == null ? "" : value1) + "\",\"value2\":\"" + (value2 == null ? "" : value2) + "\",\"value3\":\"" + (value3 == null ? "" : value3) + "\",\"value4\":\"" + (value4 == null ? "" : value4) + "\"}";
+        return GSON.toJson(this);
     }
 
 
