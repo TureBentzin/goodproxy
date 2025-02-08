@@ -26,7 +26,7 @@ public class WebsocketManager {
         try {
             URI uri = new URI(uriString);
             try(final Session session =  container.connectToServer(BankClient.class, uri)) {
-                session.getBasicRemote().sendText("Hello");
+
             }
         } catch (Exception e) {
             LOGGER.error("Failed to open connection to {}", uriString, e);

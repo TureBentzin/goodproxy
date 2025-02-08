@@ -1,10 +1,7 @@
 package net.juligames.goodproxy.websoc;
 
 
-import jakarta.websocket.ClientEndpoint;
-import jakarta.websocket.OnClose;
-import jakarta.websocket.OnMessage;
-import jakarta.websocket.OnOpen;
+import jakarta.websocket.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +26,16 @@ public class BankClient {
     @OnMessage
     public void onMessage(@NotNull String message) {
         LOGGER.info("Received message: {}", message);
+    }
+
+    @OnClose
+    public void onClose() {
+        LOGGER.info("Connection closed");
+    }
+
+    @OnError
+    public void onError(@NotNull Throwable t) {
+        LOGGER.error("Error", t);
     }
 
 }
