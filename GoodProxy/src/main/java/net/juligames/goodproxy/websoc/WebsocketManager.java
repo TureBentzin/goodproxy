@@ -16,17 +16,16 @@ import java.net.URI;
  */
 public class WebsocketManager {
 
-    private static final @NotNull Logger LOGGER = LogManager.getLogger();
+    private static final @NotNull Logger LOGGER = LogManager.getLogger(WebsocketManager.class);
 
     public boolean openNewConnection() {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         //TODO config
-        String uriString = "ws://befator.befatorinc.de:5000/banking";
+        String uriString = BankingAPI.API_URL;
         boolean success = true;
         try {
             URI uri = new URI(uriString);
             try(final Session session =  container.connectToServer(BankClient.class, uri)) {
-
             }
         } catch (Exception e) {
             LOGGER.error("Failed to open connection to {}", uriString, e);
