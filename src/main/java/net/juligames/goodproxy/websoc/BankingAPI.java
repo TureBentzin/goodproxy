@@ -71,10 +71,11 @@ public class BankingAPI {
         if (!blocked) {
             //fire now
             sendMessage(proxyAPI, command);
+        } else {
+            final Queue<APIMessage> queue = proxyAPI.getSendQueue();
+            queue.add(command);
+            LOGGER.info("Staged new message for sending. Current Position: {}", queue.size());
         }
-        final Queue<APIMessage> queue = proxyAPI.getSendQueue();
-        queue.add(command);
-        LOGGER.info("Staged new message for sending. Current Position: {}", queue.size());
 
     }
 
@@ -89,7 +90,7 @@ public class BankingAPI {
         if (blocked) {
             throw new IllegalStateException("Cant sent message when waiting!");
         }
-        proxyAPI.setWaiting(false);
+        proxyAPI.setWaiting(true);
         LOGGER.debug("Sending message: {}", command);
         try {
             session.getBasicRemote().sendText(command.toJson());
@@ -106,6 +107,17 @@ public class BankingAPI {
             LOGGER.warn("Cant fire next message, because queue is empty!");
         }
 
+    }
+
+    public static void register(@NotNull ProxyAPI proxyAPI) {
+        proxyAPI.awaitSession();
+
+        Session session = proxyAPI.getSession();
+        activeAPISessions.putIfAbsent(session.getId(), proxyAPI);
+    }
+
+    public static void unregister(@NotNull String sessionID) {
+        activeAPISessions.remove(sessionID);
     }
 
 

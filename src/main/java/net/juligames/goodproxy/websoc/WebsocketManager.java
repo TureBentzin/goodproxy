@@ -19,14 +19,18 @@ public class WebsocketManager {
 
     private static final @NotNull Logger LOGGER = LogManager.getLogger(WebsocketManager.class);
 
-    public boolean openNewConnection(@NotNull Consumer<Session> action) {
+    public boolean openNewConnection(@NotNull Consumer<Session> action, boolean unsecure) {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         //TODO config
         String uriString = BankingAPI.API_URL;
         boolean success = true;
         try {
             URI uri = new URI(uriString);
-            try(final Session session =  container.connectToServer(BankClient.class, uri)) {
+            if (!unsecure) try (final Session session = container.connectToServer(BankClient.class, uri)) {
+                action.accept(session);
+            }
+            else {
+                final Session session = container.connectToServer(BankClient.class, uri);
                 action.accept(session);
             }
         } catch (Exception e) {

@@ -19,10 +19,5 @@ public class GoodProxy {
     public static void main(@NotNull String @NotNull [] args) {
 
         LOGGER.info("Hello World!");
-
-        WebsocketManager websocketManager = new WebsocketManager();
-        boolean success = websocketManager.openNewConnection(session -> {
-            LOGGER.info("Received session: {}", session.getId());
-        });
     }
 }
