@@ -11,14 +11,14 @@ import org.junit.jupiter.api.Test;
  * @author Ture Bentzin
  * @since 08-02-2025
  */
-class PackedCommandTest {
+class APIMessageTest {
 
-    private static final @NotNull Logger LOGGER = LogManager.getLogger(PackedCommandTest.class);
+    private static final @NotNull Logger LOGGER = LogManager.getLogger(APIMessageTest.class);
 
     @Test
     void toJsonObject() {
-        PackedCommand packedCommand = PackedCommand.create(Action.AUTHENTICATE, "username", "password");
-        String json = packedCommand.toJson();
+        APIMessage APIMessage = APIMessage.create(Action.AUTHENTICATE, "username", "password");
+        String json = APIMessage.toJson();
         LOGGER.debug("Json: {}", json);
 
 

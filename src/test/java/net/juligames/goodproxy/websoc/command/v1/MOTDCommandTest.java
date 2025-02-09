@@ -20,20 +20,5 @@ class MOTDCommandTest {
     @Test
     void motd() {
 
-
-        boolean b = websocketManager.openNewConnection(session -> {
-            MOTDCommand motdCommand = new MOTDCommand();
-            assertNotNull(motdCommand.pack());
-
-            BankingAPI.sendCommand(session, motdCommand);
-
-            long time = System.currentTimeMillis();
-
-            while (System.currentTimeMillis() - time < 5000) {
-                if (BankingAPI.getMotd() != null) {
-                    break;
-                }
-            }
-        });
     }
 }

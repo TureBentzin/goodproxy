@@ -1,7 +1,7 @@
 package net.juligames.goodproxy.websoc;
 
 import jakarta.websocket.*;
-import net.juligames.goodproxy.websoc.command.PackedCommand;
+import net.juligames.goodproxy.websoc.command.APIMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -35,8 +35,8 @@ public class BankClient {
     @OnMessage
     public void onMessage(@NotNull String message) {
         LOGGER.info("Received message: {}", message);
-        PackedCommand packedCommand = PackedCommand.fromJson(message);
-        BankingAPI.handleCommand(session(), packedCommand);
+        APIMessage apiMessage = APIMessage.fromJson(message);
+        BankingAPI.handleCommand(session(), apiMessage);
     }
 
     @OnClose

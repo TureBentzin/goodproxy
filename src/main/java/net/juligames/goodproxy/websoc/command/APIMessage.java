@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Ture Bentzin
  * @since 08-02-2025
  */
-public class PackedCommand {
+public class APIMessage {
 
     private static final @NotNull Gson GSON;
 
@@ -36,7 +36,7 @@ public class PackedCommand {
     private final @Nullable String value4;
 
 
-    public PackedCommand(@NotNull Action action, @Nullable String value1, @Nullable String value2, @Nullable String value3, @Nullable String value4) {
+    public APIMessage(@NotNull Action action, @Nullable String value1, @Nullable String value2, @Nullable String value3, @Nullable String value4) {
         this.action = action;
         this.value1 = value1;
         this.value2 = value2;
@@ -44,28 +44,28 @@ public class PackedCommand {
         this.value4 = value4;
     }
 
-    public static @NotNull PackedCommand create(@NotNull Action action) {
-        return new PackedCommand(action, null, null, null, null);
+    public static @NotNull APIMessage create(@NotNull Action action) {
+        return new APIMessage(action, null, null, null, null);
     }
 
-    public static @NotNull PackedCommand create(@NotNull Action action, @NotNull String value1) {
-        return new PackedCommand(action, value1, null, null, null);
+    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1) {
+        return new APIMessage(action, value1, null, null, null);
     }
 
-    public static @NotNull PackedCommand create(@NotNull Action action, @NotNull String value1, @NotNull String value2) {
-        return new PackedCommand(action, value1, value2, null, null);
+    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1, @NotNull String value2) {
+        return new APIMessage(action, value1, value2, null, null);
     }
 
-    public static @NotNull PackedCommand create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3) {
-        return new PackedCommand(action, value1, value2, value3, null);
+    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3) {
+        return new APIMessage(action, value1, value2, value3, null);
     }
 
-    public static @NotNull PackedCommand create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3, @NotNull String value4) {
-        return new PackedCommand(action, value1, value2, value3, value4);
+    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3, @NotNull String value4) {
+        return new APIMessage(action, value1, value2, value3, value4);
     }
 
-    public static @NotNull PackedCommand fromJson(@NotNull String maybeJason) {
-        return GSON.fromJson(maybeJason, PackedCommand.class);
+    public static @NotNull APIMessage fromJson(@NotNull String maybeJason) {
+        return GSON.fromJson(maybeJason, APIMessage.class);
     }
 
     public @NotNull Action getAction() {
@@ -120,4 +120,8 @@ public class PackedCommand {
     }
 
 
+    @Override
+    public @NotNull String toString() {
+        return "M#" + hashCode();
+    }
 }
