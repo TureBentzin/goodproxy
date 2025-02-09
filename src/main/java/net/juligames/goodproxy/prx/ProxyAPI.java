@@ -73,7 +73,7 @@ public class ProxyAPI {
         }
 
         responseQueue.get(responseClazz).add(response);
-        LOGGER.debug("Received response of type: {}", responseClazz);
+        LOGGER.debug("Received response of type: {}", responseClazz.getSimpleName());
     }
 
 
