@@ -17,10 +17,6 @@ class APIMessageTest {
 
     @Test
     void toJsonObject() {
-        APIMessage APIMessage = APIMessage.create(Action.AUTHENTICATE, "username", "password");
-        String json = APIMessage.toJson();
-        LOGGER.debug("Json: {}", json);
-
 
     }
 

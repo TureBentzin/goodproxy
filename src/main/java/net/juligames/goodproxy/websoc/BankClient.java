@@ -8,6 +8,8 @@ import org.apache.logging.log4j.ThreadContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 /**
  * @author Ture Bentzin
  * @since 08-02-2025
@@ -36,7 +38,11 @@ public class BankClient {
     public void onMessage(@NotNull String message) {
         LOGGER.info("Received message: {}", message);
         APIMessage apiMessage = APIMessage.fromJson(message);
-        BankingAPI.handleCommand(session(), apiMessage);
+        try {
+            BankingAPI.handleCommand(session(), apiMessage);
+        } catch (IOException e) {
+           LOGGER.error("Failed to handle command!", e);
+        }
     }
 
     @OnClose
