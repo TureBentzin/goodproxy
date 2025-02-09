@@ -1,7 +1,0 @@
-target/
-.idea/
-
-*.secret
-*.jar
-*.log
-*.log.zip
