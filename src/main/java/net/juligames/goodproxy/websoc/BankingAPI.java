@@ -33,18 +33,22 @@ public class BankingAPI {
 
 
     public synchronized static void handleCommand(@NotNull Session session, @NotNull APIMessage incoming) throws IOException {
-        LOGGER.debug("Handling incomming message: {}", incoming);
+        LOGGER.debug("Handling incoming message: {}", incoming);
         final String sessionID = session.getId();
         if (!activeAPISessions.containsKey(sessionID)) {
             LOGGER.warn("No active proxyApi for this session. Ignoring and closing session!");
             session.close(new CloseReason(CloseReason.CloseCodes.NOT_CONSISTENT, "No active proxyApi for this session"));
         }
         ProxyAPI proxyAPI = activeAPISessions.get(sessionID);
-        boolean blocked = proxyAPI.isWaiting();
 
-        if (!blocked) {
+        if (incoming.getId() != -1 && incoming.getId() != proxyAPI.getId()) {
+            LOGGER.debug("Message dropped, because of unrecognized receiver: {}@ (we are {}@)", incoming.getId(), proxyAPI.getId());
+            return;
+        }
+
+        if (!proxyAPI.isWaiting()) {
             LOGGER.warn("Incoming message was unexpected. Moving to Queue for polling!");
-            //TODO
+            //TODO implement this queue - skip for now
             return;
         }
 
@@ -57,10 +61,8 @@ public class BankingAPI {
             LOGGER.warn("Failed to determine response from incoming message", e);
         }
 
-
         //send next message
         fireNext(proxyAPI);
-
     }
 
     public synchronized static void stageCommand(@NotNull ProxyAPI proxyAPI, @NotNull APIMessage command) {
@@ -85,12 +87,11 @@ public class BankingAPI {
 
     private static void sendMessage(@NotNull ProxyAPI proxyAPI, @NotNull APIMessage command) {
         Session session = proxyAPI.getSession();
-        final String sessionID = session.getId();
-        boolean blocked = proxyAPI.isWaiting();
-        if (blocked) {
+        if (proxyAPI.isWaiting()) {
             throw new IllegalStateException("Cant sent message when waiting!");
         }
         proxyAPI.setWaiting(true);
+        command.setId(proxyAPI.getId());
         LOGGER.debug("Sending message: {}", command);
         try {
             session.getBasicRemote().sendText(command.toJson());

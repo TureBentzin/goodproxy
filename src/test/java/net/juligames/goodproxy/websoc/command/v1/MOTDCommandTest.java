@@ -26,10 +26,10 @@ class MOTDCommandTest {
     @Test
     void motd() {
         ProxyAPI api = ProxyAPIFactory.create();
-
         try {
             String motd = api.motd().get();
             LOGGER.info("MOTD: {}", motd);
+            assertNotNull(motd);
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }

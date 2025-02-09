@@ -38,6 +38,8 @@ public class ProxyAPI {
 
     private boolean waiting = false;
 
+    private int id = 0;
+
     public @NotNull Session getSession() {
         if (session == null) {
             throw new IllegalStateException("Session is null");
@@ -131,6 +133,10 @@ public class ProxyAPI {
     public void populate(@NotNull Session session) {
         this.session = session;
         //notifyAll();
+    }
+
+    public int getId() {
+        return id;
     }
 
     @SuppressWarnings("removal")

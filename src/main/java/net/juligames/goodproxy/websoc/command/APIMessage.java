@@ -27,6 +27,8 @@ public class APIMessage {
 
     private final @NotNull Action action;
 
+    private int id;
+
     private final @Nullable String value1;
 
     private final @Nullable String value2;
@@ -113,6 +115,15 @@ public class APIMessage {
             builder.append(" ").append(value4);
         }
         return builder.toString();
+    }
+
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public @NotNull String toJson() {
