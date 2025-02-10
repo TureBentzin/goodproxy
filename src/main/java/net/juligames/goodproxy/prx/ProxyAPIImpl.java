@@ -29,6 +29,7 @@ import java.util.function.Function;
  * @author Ture Bentzin
  * @since 08-02-2025
  */
+@SuppressWarnings("unused")
 public class ProxyAPIImpl implements ProxyAPI {
 
     public static final int TIMEOUT = 5000;
@@ -41,8 +42,15 @@ public class ProxyAPIImpl implements ProxyAPI {
     private boolean waiting = false;
     private int id = 0;
 
-    private @Nullable String messageSet = null; //TODO
+    private final @Nullable String messageSet = null; //TODO
     private @Nullable Credentials storedCredentials;
+
+    private @NotNull Credentials credentials() {
+        if (storedCredentials == null) {
+            throw new IllegalStateException("Credentials are null. Use #authenticate first!");
+        }
+        return storedCredentials;
+    }
 
     public @NotNull Session getSession() {
         if (session == null) {
@@ -71,7 +79,7 @@ public class ProxyAPIImpl implements ProxyAPI {
     @Override
     public boolean checkSession() {
         try {
-            Session session1 = getSession();
+            getSession();
             return true;
         } catch (IllegalStateException ignored) {
             return false;
@@ -150,7 +158,13 @@ public class ProxyAPIImpl implements ProxyAPI {
         BankingAPI.stageCommand(this, new AuthenticateCommand(credentials));
         return awaitMessage(displayMessageResponse -> {
             id = Integer.parseInt(Objects.requireNonNull(displayMessageResponse.getSource().getValue3(), "id is null"));
+            storedCredentials = credentials;
         });
+    }
+
+    @Override
+    public @NotNull Future<DisplayMessage> logout() {
+        return logout(credentials());
     }
 
     /**
@@ -165,6 +179,11 @@ public class ProxyAPIImpl implements ProxyAPI {
         return awaitMessage();
     }
 
+    @Override
+    public @NotNull Future<DisplayMessageWithPayload<Double>> balance() {
+        return balance(credentials());
+    }
+
     /**
      * Retrieves the balance of a user
      *
@@ -177,6 +196,10 @@ public class ProxyAPIImpl implements ProxyAPI {
         return awaitMessageWithPayload(Double::parseDouble);
     }
 
+    @Override
+    public @NotNull Future<DisplayMessage> pay(@NotNull String destination, int amount) {
+        return pay(credentials(), destination, amount);
+    }
 
     @Override
     public @NotNull Future<DisplayMessage> pay(@NotNull Credentials credentials, @NotNull String destination, int amount) {
@@ -184,14 +207,19 @@ public class ProxyAPIImpl implements ProxyAPI {
         return awaitMessage();
     }
 
-    /**
-     * Returns number of messages in inbox
-     * @param credentials   the credentials
-     * @return the number of messages in inbox: (0 - n) (n messages in box)
-     */
+    @Override
+    public @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox() {
+        return getInbox(credentials());
+    }
+
     @Override
     public @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox(@NotNull Credentials credentials) {
-        return getInboxInternal(credentials);
+        return getInboxInternal(credentials, false);
+    }
+
+    @Override
+    public @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox(boolean privateMessage) {
+        return getInbox(credentials(), privateMessage);
     }
 
     /**
@@ -199,8 +227,18 @@ public class ProxyAPIImpl implements ProxyAPI {
      * @param credentials   the credentials
      * @return the number of messages in inbox: (0 - n) (n messages in box)
      */
-    private @NotNull CompletableFuture<DisplayMessageWithPayload<Integer>> getInboxInternal(@NotNull Credentials credentials) {
-        BankingAPI.stageCommand(this, new GetInboxCommand(credentials));
+    @Override
+    public @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox(@NotNull Credentials credentials, boolean privateMessage) {
+        return getInboxInternal(credentials, privateMessage);
+    }
+
+    /**
+     * Returns number of messages in inbox
+     * @param credentials   the credentials
+     * @return the number of messages in inbox: (0 - n) (n messages in box)
+     */
+    private @NotNull CompletableFuture<DisplayMessageWithPayload<Integer>> getInboxInternal(@NotNull Credentials credentials, boolean privateMessage) {
+        BankingAPI.stageCommand(this, new GetInboxCommand(credentials, privateMessage));
         return awaitMessageWithPayload(payload -> {
             return Integer.parseInt(Objects.requireNonNull(payload, "payload is null"));
         });
@@ -208,25 +246,36 @@ public class ProxyAPIImpl implements ProxyAPI {
 
     @Override
     public @NotNull Future<InboxResponse> getInboxMessage(@NotNull Credentials credentials, int messageID) {
-        return getInboxMessageInternal(credentials, messageID);
+        return getInboxMessage(credentials, messageID, false);
     }
 
-    private @NotNull CompletableFuture<InboxResponse> getInboxMessageInternal(@NotNull Credentials credentials, int messageID) {
-        BankingAPI.stageCommand(this, new GetInboxCommand(credentials, messageID));
+    @Override
+    public @NotNull Future<InboxResponse> getInboxMessage(@NotNull Credentials credentials, int messageID, boolean privateMessage) {
+        return getInboxMessageInternal(credentials, messageID, privateMessage);
+    }
+
+    private @NotNull CompletableFuture<InboxResponse> getInboxMessageInternal(@NotNull Credentials credentials, int messageID, boolean privateMessage) {
+        BankingAPI.stageCommand(this, new GetInboxCommand(credentials, messageID, privateMessage));
         return CompletableFuture.supplyAsync(() ->
                 waitForResponse(InboxResponse.class)).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials) {
+        return getInboxAll(credentials, false);
+    }
+
+
+    @Override
+    public @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials, boolean privateMessage) {
         CompletableFuture<List<String>> future = new CompletableFuture<>();
         BankingAPI.stageCommand(this, new GetInboxCommand(credentials));
 
-        getInboxInternal(credentials).thenAccept(displayMessageWithPayload -> {
+        getInboxInternal(credentials, privateMessage).thenAccept(displayMessageWithPayload -> {
             int messageCount = displayMessageWithPayload.getPayload();
             List<String> messages = new ArrayList<>();
             for (int i = 0; i < messageCount; i++) {
-                getInboxMessageInternal(credentials, i).thenAccept(inboxResponse -> {
+                getInboxMessageInternal(credentials, i, privateMessage).thenAccept(inboxResponse -> {
                     messages.add(inboxResponse.getMessage());
                     if (messages.size() == messageCount) {
                         future.complete(messages);
@@ -251,7 +300,7 @@ public class ProxyAPIImpl implements ProxyAPI {
         }).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
+    private @NotNull CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
         return awaitMessageWithPayload(additionalAction, s -> s);
     }
 

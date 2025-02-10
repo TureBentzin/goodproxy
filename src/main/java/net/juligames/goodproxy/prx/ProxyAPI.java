@@ -24,17 +24,33 @@ public interface ProxyAPI extends Closeable {
 
     @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials);
 
+    @NotNull Future<DisplayMessage> logout();
+
     @NotNull Future<DisplayMessage> logout(@NotNull Credentials credentials);
+
+    @NotNull Future<DisplayMessageWithPayload<Double>> balance();
 
     @NotNull Future<DisplayMessageWithPayload<Double>> balance(@NotNull Credentials credentials);
 
+    @NotNull Future<DisplayMessage> pay(@NotNull String destination, int amount);
+
     @NotNull Future<DisplayMessage> pay(@NotNull Credentials credentials, @NotNull String destination, int amount);
+
+    @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox();
 
     @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox(@NotNull Credentials credentials);
 
     @NotNull Future<InboxResponse> getInboxMessage(@NotNull Credentials credentials, int messageID);
 
     @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials);
+
+    @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox(boolean privateMessage);
+
+    @NotNull Future<DisplayMessageWithPayload<Integer>> getInbox(@NotNull Credentials credentials, boolean privateMessage);
+
+    @NotNull Future<InboxResponse> getInboxMessage(@NotNull Credentials credentials, int messageID, boolean privateMessage);
+
+    @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials, boolean privateMessage);
 
     @NotNull Map<Class<? extends Response>, Queue<Response>> copyResponseQueue();
 
