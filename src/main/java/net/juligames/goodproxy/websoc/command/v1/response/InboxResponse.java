@@ -17,7 +17,7 @@ public class InboxResponse extends Response {
 
     protected InboxResponse(@NotNull APIMessage source) {
         super(source);
-        assert source.getAction() == Action.GET_INBOX || source.getAction() == Action.GET_PM_INBOX;
+        assert source.getAction() == Action.INBOX || source.getAction() == Action.PM_INBOX;
         messageID = Integer.parseInt(Objects.requireNonNull(source.getValue1(), "Message ID is null"));
         message = Objects.requireNonNull(source.getValue2(), "Message is null");
         this.privateMessage = source.getAction() == Action.GET_PM_INBOX;

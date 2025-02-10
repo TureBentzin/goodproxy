@@ -33,6 +33,9 @@ public abstract class Response {
             case INBOX, PM_INBOX -> {
                 return new InboxResponse(apiMessage);
             }
+            case ECHO -> {
+                return new EchoResponse(apiMessage);
+            }
 
             default -> throw new IllegalArgumentException("Unknown response!");
         }
@@ -54,5 +57,10 @@ public abstract class Response {
      */
     public boolean maybeUnexpected() {
         return false;
+    }
+
+    @Override
+    public @NotNull String toString() {
+        return source.getCommandString();
     }
 }

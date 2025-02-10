@@ -87,7 +87,7 @@ public class BankingAPI {
         } else {
             final Queue<APIMessage> queue = proxyAPI.getSendQueue();
             queue.add(command);
-            LOGGER.info("Staged new message for sending. Current Position: {}", queue.size());
+            LOGGER.info("Staged {} for sending. Current Position: {}", command, queue.size());
         }
 
     }

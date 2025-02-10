@@ -228,6 +228,44 @@ class ProxyAPITest {
         LOGGER.traceExit();
     }
 
+    @Order(13)
+    @Test
+    void getPrivateInbox() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessageWithPayload<Integer> displayMessage = proxyAPI.getInbox(credentials, true).get();
+            assertEquals("", displayMessage.message());
+            assertEquals("message_count", displayMessage.key());
+            int inboxSize = displayMessage.getPayload();
+            LOGGER.info("Inbox size:  {}", inboxSize);
+            assertEquals(0, inboxSize);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(14)
+    @Test
+    void getPrivateInboxMessage() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessageWithPayload<Integer> displayMessage = proxyAPI.getInbox(credentials, true).get();
+            assertEquals("message_count", displayMessage.key());
+            assertEquals("", displayMessage.message());
+            int inboxSize = displayMessage.getPayload();
+            assertEquals(0, inboxSize);
+            InboxResponse inboxResponse = proxyAPI.getInboxMessage(credentials, 1, true).get();
+            int messageID = inboxResponse.getMessageID();
+            assertEquals(1, messageID);
+            LOGGER.info(inboxResponse);
+            assertEquals(1, messageID);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
     @Order(1000) // ALWAYS LAST
     @Test
     void logout() {

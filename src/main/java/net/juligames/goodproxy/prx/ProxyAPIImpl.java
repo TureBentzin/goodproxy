@@ -9,10 +9,7 @@ import net.juligames.goodproxy.util.Credentials;
 import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.v1.request.*;
-import net.juligames.goodproxy.websoc.command.v1.response.DisplayMessageResponse;
-import net.juligames.goodproxy.websoc.command.v1.response.InboxResponse;
-import net.juligames.goodproxy.websoc.command.v1.response.Response;
-import net.juligames.goodproxy.websoc.command.v1.response.MOTDResponse;
+import net.juligames.goodproxy.websoc.command.v1.response.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -98,7 +95,6 @@ public class ProxyAPIImpl implements ProxyAPI {
         if (!responseQueue.containsKey(responseClazz)) {
             responseQueue.put(responseClazz, new ArrayDeque<>());
         }
-
         responseQueue.get(responseClazz).add(response);
         LOGGER.debug("Received response of type: {}", responseClazz.getSimpleName());
     }
@@ -286,6 +282,21 @@ public class ProxyAPIImpl implements ProxyAPI {
         return future;
     }
 
+    @Override
+    public @NotNull Future<EchoResponse> echo(@NotNull String message) {
+        BankingAPI.stageCommand(this, new EchoCommand(message));
+        return CompletableFuture.supplyAsync(() -> waitForResponse(EchoResponse.class)).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public @NotNull Future<EchoResponse> echo() {
+        BankingAPI.stageCommand(this, new EchoCommand());
+        return CompletableFuture.supplyAsync(() -> waitForResponse(EchoResponse.class)).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+
+    }
+
+    /// INTERNAL
+
 
     private @NotNull CompletableFuture<DisplayMessage> awaitMessage() {
         return awaitMessage(displayMessageResponse -> {
@@ -335,6 +346,12 @@ public class ProxyAPIImpl implements ProxyAPI {
                 logger.error("wait was interrupted", e);
             }
         }
+        //noinspection ConstantValue
+        if (responses.isEmpty()) {
+            throw new IllegalStateException("No response available");
+        }
+
+        LOGGER.debug("QUEUE: {}", responses);
         //noinspection unchecked
         return (T) responses.poll();
     }

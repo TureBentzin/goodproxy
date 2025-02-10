@@ -1,9 +1,9 @@
 package net.juligames.goodproxy.prx;
 
-import jakarta.websocket.Session;
 import net.juligames.goodproxy.displaymessage.DisplayMessage;
 import net.juligames.goodproxy.displaymessage.DisplayMessageWithPayload;
 import net.juligames.goodproxy.util.Credentials;
+import net.juligames.goodproxy.websoc.command.v1.response.EchoResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.InboxResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.Response;
 import org.jetbrains.annotations.NotNull;
@@ -51,6 +51,10 @@ public interface ProxyAPI extends Closeable {
     @NotNull Future<InboxResponse> getInboxMessage(@NotNull Credentials credentials, int messageID, boolean privateMessage);
 
     @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials, boolean privateMessage);
+
+    @NotNull Future<EchoResponse> echo(@NotNull String message);
+
+    @NotNull Future<EchoResponse> echo();
 
     @NotNull Map<Class<? extends Response>, Queue<Response>> copyResponseQueue();
 

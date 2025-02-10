@@ -133,6 +133,6 @@ public class APIMessage {
 
     @Override
     public @NotNull String toString() {
-        return "M#" + hashCode();
+        return getAction().uid() +  "#" + hashCode();
     }
 }
