@@ -339,21 +339,24 @@ public class ProxyAPIImpl implements ProxyAPI {
             responseQueue.put(type, new ArrayDeque<>());
         }
         Queue<Response> responses = responseQueue.get(type);
-        while (responses.isEmpty()) {
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                logger.error("wait was interrupted", e);
+        synchronized (responses) { //TODO: Das reicht nicht aus, da diese method auch von anderen threads aufgerufen wird und unklar ist, wann diese hier ankommen. Die Reihenfolge ist nicht garantiert
+            while (responses.isEmpty()) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    logger.error("wait was interrupted", e);
+                }
             }
-        }
-        //noinspection ConstantValue
-        if (responses.isEmpty()) {
-            throw new IllegalStateException("No response available");
-        }
 
-        LOGGER.debug("QUEUE: {}", responses);
-        //noinspection unchecked
-        return (T) responses.poll();
+            //noinspection ConstantValue
+            if (responses.isEmpty()) {
+                throw new IllegalStateException("No response available");
+            }
+
+            LOGGER.debug("QUEUE: {}", responses);
+            //noinspection unchecked
+            return (T) responses.poll();
+        }
     }
 
 
