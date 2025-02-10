@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Ture Bentzin
@@ -69,6 +70,7 @@ public class ProxyAPI {
 
     /**
      * Checks if the session is still open
+     *
      * @return true if the session is open
      */
     public boolean checkSession() {
@@ -82,8 +84,9 @@ public class ProxyAPI {
 
     /**
      * INTERNAL
-     *
+     * <p>
      * Receives a message from the server
+     *
      * @param response the response
      */
     public synchronized void incomingResponse(@NotNull Response response) {
@@ -98,6 +101,7 @@ public class ProxyAPI {
 
     /**
      * INTERNAL
+     *
      * @param response the response
      */
     public synchronized void incomingUnexpectedCommand(@NotNull Response response) {
@@ -113,6 +117,7 @@ public class ProxyAPI {
 
     /**
      * Retrieves the MOTD from the server
+     *
      * @return the MOTD
      */
     public @NotNull Future<String> motd() {
@@ -127,6 +132,7 @@ public class ProxyAPI {
 
     /**
      * Registers a new user
+     *
      * @param credentials the credentials
      * @return the response
      */
@@ -137,6 +143,7 @@ public class ProxyAPI {
 
     /**
      * Authenticates a user
+     *
      * @param credentials the credentials
      * @return the response
      */
@@ -149,12 +156,13 @@ public class ProxyAPI {
 
     /**
      * Retrieves the balance of a user
+     *
      * @param credentials the credentials
      * @return the response
      */
-    public @NotNull Future<DisplayMessageWithPayload> balance(@NotNull Credentials credentials) {
+    public @NotNull Future<DisplayMessageWithPayload<Double>> balance(@NotNull Credentials credentials) {
         BankingAPI.stageCommand(this, new BalanceCommand(credentials));
-        return awaitMessageWithPayload();
+        return awaitMessageWithPayload(Double::parseDouble);
     }
 
     private @NotNull CompletableFuture<DisplayMessage> awaitMessage() {
@@ -162,17 +170,26 @@ public class ProxyAPI {
         });
     }
 
-    private @NotNull CompletableFuture<DisplayMessageWithPayload> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction, @NotNull Function<String, T> payloadConverter) {
         return CompletableFuture.supplyAsync(() -> {
             DisplayMessageResponse displayMessageResponse = waitForResponse(DisplayMessageResponse.class);
             additionalAction.accept(displayMessageResponse);
-            return displayMessageResponse.getMessageWithPayload(messageSet);
+            return displayMessageResponse.getMessageWithPayload(messageSet, payloadConverter);
         }).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-    private @NotNull CompletableFuture<DisplayMessageWithPayload> awaitMessageWithPayload() {
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
+        return awaitMessageWithPayload(additionalAction, s -> s);
+    }
+
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull Function<String, T> payloadConverter) {
         return awaitMessageWithPayload(displayMessageResponse -> {
-        });
+        }, payloadConverter);
+    }
+
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload() {
+        return awaitMessageWithPayload(displayMessageResponse -> {
+        }, s -> s);
     }
 
     private @NotNull CompletableFuture<DisplayMessage> awaitMessage(@NotNull Consumer<DisplayMessageResponse> additionalAction) {

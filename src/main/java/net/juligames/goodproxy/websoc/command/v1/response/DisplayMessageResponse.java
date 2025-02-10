@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 public class DisplayMessageResponse extends Response {
 
@@ -26,13 +27,14 @@ public class DisplayMessageResponse extends Response {
         );
     }
 
-    public @NotNull DisplayMessageWithPayload getMessageWithPayload(@Nullable String messageSet) {
+    public @NotNull <T> DisplayMessageWithPayload<T> getMessageWithPayload(@Nullable String messageSet, @NotNull Function<String, T> payloadConverter) {
         String key = Objects.requireNonNull(getSource().getValue2(), "No key provided");
         return new DisplayMessageWithPayload(
                 (messageSet == null) ? Objects.requireNonNull(getSource().getValue1(), "No message provided") : HardcodeMessages.getMessage(key, messageSet),
                 key,
                 (messageSet == null) ? "" : messageSet,
-                Objects.requireNonNull(getSource().getValue3(), "No payload provided")
+                Objects.requireNonNull(getSource().getValue3(), "No payload provided"),
+                payloadConverter
         );
     }
 

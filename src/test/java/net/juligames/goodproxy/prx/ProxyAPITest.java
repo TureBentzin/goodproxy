@@ -83,11 +83,12 @@ class ProxyAPITest {
     void balance() {
         LOGGER.traceEntry();
         try {
-            DisplayMessageWithPayload displayMessage = proxyAPI.balance(credentials).get();
+            DisplayMessageWithPayload<Double> displayMessage = proxyAPI.balance(credentials).get();
             LOGGER.info(displayMessage);
             assertEquals("balance.success", displayMessage.key());
-            double balance = displayMessage.getPayloadAsDouble();
+            double balance = displayMessage.getPayload();
             LOGGER.info("Balance:  {}", balance);
+            assertEquals(0.0, balance);
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
