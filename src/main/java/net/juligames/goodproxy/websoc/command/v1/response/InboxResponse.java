@@ -6,17 +6,21 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public class InboxResponse extends Response{
+public class InboxResponse extends Response {
 
-    private int messageID = -1;
+    private final int messageID;
 
-    private @NotNull String message = "";
+    private final boolean privateMessage;
+
+    private final @NotNull String message;
 
 
-    public InboxResponse(@NotNull APIMessage source) {
+    protected InboxResponse(@NotNull APIMessage source) {
         super(source);
+        assert source.getAction() == Action.GET_INBOX || source.getAction() == Action.GET_PM_INBOX;
         messageID = Integer.parseInt(Objects.requireNonNull(source.getValue1(), "Message ID is null"));
         message = Objects.requireNonNull(source.getValue2(), "Message is null");
+        this.privateMessage = source.getAction() == Action.GET_PM_INBOX;
     }
 
     public int getMessageID() {
@@ -27,9 +31,8 @@ public class InboxResponse extends Response{
         return message;
     }
 
-    @Override
-    public @NotNull Action getAction() {
-        return Action.INBOX;
+    public boolean isPrivateMessage() {
+        return privateMessage;
     }
 
     @Override

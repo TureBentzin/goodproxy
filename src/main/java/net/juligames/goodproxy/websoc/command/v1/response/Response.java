@@ -30,7 +30,7 @@ public abstract class Response {
             case DISPLAY_MESSAGE -> {
                 return new DisplayMessageResponse(apiMessage);
             }
-            case INBOX -> {
+            case INBOX, PM_INBOX -> {
                 return new InboxResponse(apiMessage);
             }
 
@@ -44,7 +44,9 @@ public abstract class Response {
         return source;
     }
 
-    public abstract @NotNull Action getAction();
+    public @NotNull Action getAction() {
+        return source.getAction();
+    }
 
     /**
      * Override this if the message may come unexpected.

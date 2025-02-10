@@ -16,6 +16,7 @@ public class DisplayMessageResponse extends Response {
 
     protected DisplayMessageResponse(@NotNull APIMessage source) {
         super(source);
+        assert source.getAction() == Action.DISPLAY_MESSAGE;
     }
 
     public @NotNull DisplayMessage getMessage(@Nullable String messageSet) {
@@ -29,7 +30,7 @@ public class DisplayMessageResponse extends Response {
 
     public @NotNull <T> DisplayMessageWithPayload<T> getMessageWithPayload(@Nullable String messageSet, @NotNull Function<String, T> payloadConverter) {
         String key = Objects.requireNonNull(getSource().getValue2(), "No key provided");
-        return new DisplayMessageWithPayload(
+        return new DisplayMessageWithPayload<T>(
                 (messageSet == null) ? Objects.requireNonNull(getSource().getValue1(), "No message provided") : HardcodeMessages.getMessage(key, messageSet),
                 key,
                 (messageSet == null) ? "" : messageSet,
@@ -38,8 +39,4 @@ public class DisplayMessageResponse extends Response {
         );
     }
 
-    @Override
-    public @NotNull Action getAction() {
-        return Action.DISPLAY_MESSAGE;
-    }
 }
