@@ -29,13 +29,17 @@ public abstract class Response {
                 return new MOTDResponse(apiMessage);
             }
 
+            case DISPLAY_MESSAGE -> {
+                return new DisplayMessageResponse(apiMessage);
+            }
+
             default -> throw new IllegalArgumentException("Unknown response!");
         }
     }
 
     private final @NotNull APIMessage source;
 
-    protected final @NotNull APIMessage getSource() {
+    public final @NotNull APIMessage getSource() {
         return source;
     }
 

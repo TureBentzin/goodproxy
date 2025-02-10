@@ -34,7 +34,7 @@ public enum Action {
     }
 
     Action(final @NotNull String action) {
-        this.action = action.toLowerCase();
+        this.action = action;
     }
 
     public @NotNull String getActionString() {

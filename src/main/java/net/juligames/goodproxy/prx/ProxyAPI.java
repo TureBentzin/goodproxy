@@ -9,6 +9,8 @@ import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.action.Action;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.Command;
+import net.juligames.goodproxy.websoc.command.v1.request.RegisterCommand;
+import net.juligames.goodproxy.websoc.command.v1.response.DisplayMessageResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.Response;
 import net.juligames.goodproxy.websoc.command.v1.request.MOTDCommand;
 import net.juligames.goodproxy.websoc.command.v1.response.MOTDResponse;
@@ -17,10 +19,12 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.constant.Constable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * @author Ture Bentzin
@@ -37,6 +41,8 @@ public class ProxyAPI {
     private final @NotNull Queue<APIMessage> sendQueue = new ArrayDeque<>();
     private boolean waiting = false;
     private int id = 0;
+
+    private @NotNull String messageSet = "english";
 
     public @NotNull Session getSession() {
         if (session == null) {
@@ -91,29 +97,47 @@ public class ProxyAPI {
         BankingAPI.stageCommand(this, new MOTDCommand());
 
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-            @NotNull Logger logger = LogManager.getLogger();
-            long timeStart = System.currentTimeMillis();
-            if (!responseQueue.containsKey(MOTDResponse.class)) {
-                //register MOTDResponse
-                responseQueue.put(MOTDResponse.class, new ArrayDeque<>());
-            }
-            Queue<Response> responses = responseQueue.get(MOTDResponse.class);
-            while (responses.isEmpty()) {
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    logger.error("wait was interrupted", e);
-                }
-            }
-            MOTDResponse poll = (MOTDResponse) responses.poll();
+            MOTDResponse poll = waitForResponse(MOTDResponse.class);
             return poll.getMOTD();
         });
         return future.orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
-    public @NotNull Future<DisplayMessage> register() {
-//TODO
-        return null;
+    public @NotNull Future<DisplayMessage> register(@NotNull Credentials credentials) {
+        BankingAPI.stageCommand(this, new RegisterCommand(credentials));
+        return awaitMessage(displayMessageResponse -> {
+            this.id = displayMessageResponse.getSource().getId();
+        });
+    }
+
+    private @NotNull CompletableFuture<DisplayMessage> awaitMessage() {
+        return awaitMessage(displayMessageResponse -> {
+        });
+    }
+
+    private @NotNull CompletableFuture<DisplayMessage> awaitMessage(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
+        return CompletableFuture.supplyAsync(() -> {
+            DisplayMessageResponse displayMessageResponse = waitForResponse(DisplayMessageResponse.class);
+            additionalAction.accept(displayMessageResponse);
+            return displayMessageResponse.getMessage(messageSet);
+        }).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    private <T extends Response> @NotNull T waitForResponse(@NotNull Class<T> type) {
+        @NotNull Logger logger = LogManager.getLogger();
+        if (!responseQueue.containsKey(type)) {
+            responseQueue.put(type, new ArrayDeque<>());
+        }
+        Queue<Response> responses = responseQueue.get(type);
+        while (responses.isEmpty()) {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                logger.error("wait was interrupted", e);
+            }
+        }
+        //noinspection unchecked
+        return (T) responses.poll();
     }
 
 
