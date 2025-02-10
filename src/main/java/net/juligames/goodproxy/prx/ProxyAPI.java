@@ -67,6 +67,10 @@ public class ProxyAPI {
 
     }
 
+    /**
+     * Checks if the session is still open
+     * @return true if the session is open
+     */
     public boolean checkSession() {
         try {
             Session session1 = getSession();
@@ -76,6 +80,12 @@ public class ProxyAPI {
         }
     }
 
+    /**
+     * INTERNAL
+     *
+     * Receives a message from the server
+     * @param response the response
+     */
     public synchronized void incomingResponse(@NotNull Response response) {
         Class<? extends Response> responseClazz = response.getClass();
         if (!responseQueue.containsKey(responseClazz)) {
@@ -86,6 +96,10 @@ public class ProxyAPI {
         LOGGER.debug("Received response of type: {}", responseClazz.getSimpleName());
     }
 
+    /**
+     * INTERNAL
+     * @param response the response
+     */
     public synchronized void incomingUnexpectedCommand(@NotNull Response response) {
         Class<? extends Response> responseClazz = response.getClass();
         if (!unexpectedCommandQueue.containsKey(responseClazz)) {
@@ -97,6 +111,10 @@ public class ProxyAPI {
     }
 
 
+    /**
+     * Retrieves the MOTD from the server
+     * @return the MOTD
+     */
     public @NotNull Future<String> motd() {
         BankingAPI.stageCommand(this, new MOTDCommand());
 
@@ -107,11 +125,21 @@ public class ProxyAPI {
         return future.orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Registers a new user
+     * @param credentials the credentials
+     * @return the response
+     */
     public @NotNull Future<DisplayMessage> register(@NotNull Credentials credentials) {
         BankingAPI.stageCommand(this, new RegisterCommand(credentials));
         return awaitMessage();
     }
 
+    /**
+     * Authenticates a user
+     * @param credentials the credentials
+     * @return the response
+     */
     public @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials) {
         BankingAPI.stageCommand(this, new AuthenticateCommand(credentials));
         return awaitMessage(displayMessageResponse -> {
@@ -119,6 +147,11 @@ public class ProxyAPI {
         });
     }
 
+    /**
+     * Retrieves the balance of a user
+     * @param credentials the credentials
+     * @return the response
+     */
     public @NotNull Future<DisplayMessageWithPayload> balance(@NotNull Credentials credentials) {
         BankingAPI.stageCommand(this, new BalanceCommand(credentials));
         return awaitMessageWithPayload();
