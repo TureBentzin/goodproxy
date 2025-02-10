@@ -10,12 +10,9 @@ import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.action.Action;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.Command;
-import net.juligames.goodproxy.websoc.command.v1.request.AuthenticateCommand;
-import net.juligames.goodproxy.websoc.command.v1.request.BalanceCommand;
-import net.juligames.goodproxy.websoc.command.v1.request.RegisterCommand;
+import net.juligames.goodproxy.websoc.command.v1.request.*;
 import net.juligames.goodproxy.websoc.command.v1.response.DisplayMessageResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.Response;
-import net.juligames.goodproxy.websoc.command.v1.request.MOTDCommand;
 import net.juligames.goodproxy.websoc.command.v1.response.MOTDResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -152,6 +149,17 @@ public class ProxyAPI {
         return awaitMessage(displayMessageResponse -> {
             this.id = displayMessageResponse.getSource().getId();
         });
+    }
+
+    /**
+     * Performs a logout
+     *
+     * @param credentials the credentials
+     * @return the response
+     */
+    public @NotNull Future<DisplayMessage> logout(@NotNull Credentials credentials) {
+        BankingAPI.stageCommand(this, new LogoutCommand(credentials));
+        return awaitMessage();
     }
 
     /**

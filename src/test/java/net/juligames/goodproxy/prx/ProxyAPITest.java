@@ -95,6 +95,20 @@ class ProxyAPITest {
         LOGGER.traceExit();
     }
 
+    @Order(5) // ALWAYS LAST
+    @Test
+    void logout() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.logout(credentials).get();
+            LOGGER.info(displayMessage);
+            assertEquals("logout.success", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
 
     @AfterAll
     static void tearDown() {

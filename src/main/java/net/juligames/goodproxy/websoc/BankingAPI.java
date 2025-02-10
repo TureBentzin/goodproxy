@@ -27,7 +27,17 @@ public class BankingAPI {
     private static final @NotNull HashMap<String, ProxyAPI> activeAPISessions = new HashMap<>();
 
 
-    public synchronized static void handleCommand(@NotNull Session session, @NotNull APIMessage incoming) throws IOException {
+    /**
+     * INTERNAL
+     * Handles incoming messages from the server
+     * and forwards them to the correct ProxyAPI
+     * instance.
+     *
+     * @param session The session the message was received on
+     * @param incoming The incoming message
+     * @throws IOException If the message could not be handled
+     */
+    protected synchronized static void handleCommand(@NotNull Session session, @NotNull APIMessage incoming) throws IOException {
         LOGGER.debug("Handling incoming message: {}", incoming);
         final String sessionID = session.getId();
         if (!activeAPISessions.containsKey(sessionID)) {
@@ -60,6 +70,11 @@ public class BankingAPI {
         fireNext(proxyAPI);
     }
 
+    /**
+     * Sends a command to the server
+     * @param proxyAPI The proxyAPI to send the command with
+     * @param command The command to send
+     */
     public synchronized static void stageCommand(@NotNull ProxyAPI proxyAPI, @NotNull APIMessage command) {
         Session session = proxyAPI.getSession();
         final String sessionID = session.getId();
@@ -76,6 +91,11 @@ public class BankingAPI {
 
     }
 
+    /**
+     * Sends a command to the server
+     * @param proxyAPI proxyAPI to send the command with
+     * @param command The command to send
+     */
     public static void stageCommand(@NotNull ProxyAPI proxyAPI, @NotNull Command command) {
         stageCommand(proxyAPI, command.pack());
     }
