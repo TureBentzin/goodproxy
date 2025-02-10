@@ -5,6 +5,7 @@ import net.juligames.goodproxy.displaymessage.DisplayMessageWithPayload;
 import net.juligames.goodproxy.util.Credentials;
 import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.WebsocketManager;
+import net.juligames.goodproxy.websoc.command.v1.response.InboxResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -189,6 +190,44 @@ class ProxyAPITest {
         LOGGER.traceExit();
     }
 
+    @Order(11)
+    @Test
+    void getInbox() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessageWithPayload<Integer> displayMessage = proxyAPI.getInbox(credentials).get();
+            assertEquals("", displayMessage.message());
+            assertEquals("message_count", displayMessage.key());
+            int inboxSize = displayMessage.getPayload();
+            LOGGER.info("Inbox size:  {}", inboxSize);
+            assertEquals(1, inboxSize);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(12)
+    @Test
+    void getInboxMessage() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessageWithPayload<Integer> displayMessage = proxyAPI.getInbox(credentials).get();
+            assertEquals("message_count", displayMessage.key());
+            assertEquals("", displayMessage.message());
+            int inboxSize = displayMessage.getPayload();
+            assertEquals(1, inboxSize);
+            InboxResponse inboxResponse = proxyAPI.getInboxMessage(credentials, 1).get();
+            int messageID = inboxResponse.getMessageID();
+            assertEquals(1, messageID);
+            LOGGER.info(inboxResponse);
+            assertEquals(1, messageID);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
     @Order(1000) // ALWAYS LAST
     @Test
     void logout() {
@@ -206,7 +245,7 @@ class ProxyAPITest {
 
     @AfterAll
     static void tearDown() {
-        BankingAPI.unregister(proxyAPI.getSession().getId());
+        proxyAPI.close();
     }
 
 

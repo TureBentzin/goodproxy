@@ -30,6 +30,9 @@ public abstract class Response {
             case DISPLAY_MESSAGE -> {
                 return new DisplayMessageResponse(apiMessage);
             }
+            case INBOX -> {
+                return new InboxResponse(apiMessage);
+            }
 
             default -> throw new IllegalArgumentException("Unknown response!");
         }

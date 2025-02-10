@@ -13,7 +13,7 @@ public class ProxyAPIFactory {
     public static @NotNull WebsocketManager websocketManager = new WebsocketManager();
 
     public static @NotNull ProxyAPI create() {
-        final ProxyAPI proxyAPI = new ProxyAPI();
+        final ProxyAPIImpl proxyAPI = new ProxyAPIImpl();
         websocketManager.openNewConnection(proxyAPI::populate, true);
         proxyAPI.awaitSession();
 
