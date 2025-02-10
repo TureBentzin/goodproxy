@@ -112,7 +112,8 @@ public class ProxyAPI {
     }
 
     public @NotNull Future<DisplayMessage> register() {
-
+//TODO
+        return null;
     }
 
 

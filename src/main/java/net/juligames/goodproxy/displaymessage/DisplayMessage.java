@@ -1,4 +1,4 @@
 package net.juligames.goodproxy.displaymessage;
 
-public class DisplayMessage {
+public record DisplayMessage(String message, String key, String messageSet) {
 }
