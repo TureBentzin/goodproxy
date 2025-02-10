@@ -3,6 +3,8 @@ package net.juligames.goodproxy.prx;
 
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.Session;
+import net.juligames.goodproxy.displaymessage.DisplayMessage;
+import net.juligames.goodproxy.util.Credentials;
 import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.action.Action;
 import net.juligames.goodproxy.websoc.command.APIMessage;
@@ -101,6 +103,10 @@ public class ProxyAPI {
             return poll.getMOTD();
         });
         return future.orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    public @NotNull Future<DisplayMessage> register() {
+
     }
 
 

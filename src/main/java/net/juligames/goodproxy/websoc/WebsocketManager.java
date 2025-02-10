@@ -1,6 +1,7 @@
 package net.juligames.goodproxy.websoc;
 
 
+import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
@@ -27,10 +28,12 @@ public class WebsocketManager {
         try {
             URI uri = new URI(uriString);
             if (!unsecure) try (final Session session = container.connectToServer(BankClient.class, uri)) {
+                if(!session.isSecure()) LOGGER.warn("You are connected over an unsecure connection!");
                 action.accept(session);
             }
             else {
                 final Session session = container.connectToServer(BankClient.class, uri);
+                if(!session.isSecure()) LOGGER.warn("You are connected over an unsecure connection!");
                 action.accept(session);
             }
         } catch (Exception e) {
