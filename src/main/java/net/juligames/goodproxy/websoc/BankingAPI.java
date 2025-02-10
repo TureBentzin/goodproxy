@@ -33,7 +33,7 @@ public class BankingAPI {
      * and forwards them to the correct ProxyAPI
      * instance.
      *
-     * @param session The session the message was received on
+     * @param session  The session the message was received on
      * @param incoming The incoming message
      * @throws IOException If the message could not be handled
      */
@@ -72,8 +72,9 @@ public class BankingAPI {
 
     /**
      * Sends a command to the server
+     *
      * @param proxyAPI The proxyAPI to send the command with
-     * @param command The command to send
+     * @param command  The command to send
      */
     public synchronized static void stageCommand(@NotNull ProxyAPI proxyAPI, @NotNull APIMessage command) {
         Session session = proxyAPI.getSession();
@@ -93,8 +94,9 @@ public class BankingAPI {
 
     /**
      * Sends a command to the server
+     *
      * @param proxyAPI proxyAPI to send the command with
-     * @param command The command to send
+     * @param command  The command to send
      */
     public static void stageCommand(@NotNull ProxyAPI proxyAPI, @NotNull Command command) {
         stageCommand(proxyAPI, command.pack());
@@ -107,7 +109,16 @@ public class BankingAPI {
         }
         proxyAPI.setWaiting(true);
         command.setId(proxyAPI.getId());
-        LOGGER.debug("Sending message: {}", command);
+        String json;
+        try {
+            json = command.toJson();
+        } catch (Exception e) {
+            LOGGER.error("Failed to serialize message {}", command, e);
+            return;
+        }
+
+        LOGGER.debug("Sending message: {} - {}", command, json);
+
         try {
             session.getBasicRemote().sendText(command.toJson());
         } catch (Exception e) {
@@ -120,7 +131,7 @@ public class BankingAPI {
         if (!queue.isEmpty()) {
             sendMessage(proxyAPI, queue.poll());
         } else {
-            LOGGER.warn("Cant fire next message, because queue is empty!");
+            LOGGER.debug("Cant fire next message, because queue is empty!");
         }
 
     }

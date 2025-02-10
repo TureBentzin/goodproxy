@@ -1,5 +1,6 @@
 package net.juligames.goodproxy.websoc;
 
+import com.google.gson.JsonSyntaxException;
 import jakarta.websocket.*;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import org.apache.logging.log4j.LogManager;
@@ -30,25 +31,32 @@ public class BankClient {
     @OnOpen
     public void onOpen(@NotNull Session session) {
         this.session = session;
-        ThreadContext.put("sessionId", session.getId()); // Store session ID in MDC
+      //  ThreadContext.put("sessionId", session.getId()); // Store session ID in MDC
         LOGGER.info("Connected to {}", session.getRequestURI());
     }
 
     @OnMessage
     public void onMessage(@NotNull String message) {
-        LOGGER.info("Received message: {}", message);
-        APIMessage apiMessage = APIMessage.fromJson(message);
+        APIMessage apiMessage;
+        try {
+            apiMessage = APIMessage.fromJson(message);
+        } catch (JsonSyntaxException e) {
+            LOGGER.error("Failed to parse message: {}", message, e);
+            return;
+        }
+        //check if debug is on
+        LOGGER.debug("Parsed message: {} to {}", message, apiMessage);
         try {
             BankingAPI.handleCommand(session(), apiMessage);
         } catch (IOException e) {
-           LOGGER.error("Failed to handle command!", e);
+            LOGGER.error("Failed to handle command!", e);
         }
     }
 
     @OnClose
     public void onClose() {
         LOGGER.info("Connection closed");
-        ThreadContext.remove("sessionId"); //
+      //  ThreadContext.remove("sessionId");
     }
 
     @OnError

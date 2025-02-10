@@ -147,7 +147,7 @@ public class ProxyAPI {
     public @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials) {
         BankingAPI.stageCommand(this, new AuthenticateCommand(credentials));
         return awaitMessage(displayMessageResponse -> {
-            this.id = displayMessageResponse.getSource().getId();
+            id = Integer.parseInt(Objects.requireNonNull(displayMessageResponse.getSource().getValue3(), "id is null"));
         });
     }
 
