@@ -23,12 +23,7 @@ import java.util.Queue;
 public class BankingAPI {
 
     public static final @NotNull String API_URL = "ws://befator.befatorinc.de:5000/banking";
-
     public static final @NotNull Logger LOGGER = LogManager.getLogger(BankingAPI.class);
-
-    //private static final @NotNull HashMap<String, Queue<APIMessage>> sendQueue = new HashMap<>();
-    //private static final @NotNull HashMap<String, Boolean> waiting = new HashMap<>();
-
     private static final @NotNull HashMap<String, ProxyAPI> activeAPISessions = new HashMap<>();
 
 
@@ -46,20 +41,20 @@ public class BankingAPI {
             return;
         }
 
-        if (!proxyAPI.isWaiting()) {
-            LOGGER.warn("Incoming message was unexpected. Moving to Queue for polling!");
-            //TODO implement this queue - skip for now
-            return;
-        }
-
-        proxyAPI.setWaiting(false);
-
         try {
             Response response = Response.fromMessage(incoming);
+            if (!proxyAPI.isWaiting()) {
+                LOGGER.warn("Incoming message was unexpected. Moving to Queue for polling!");
+                proxyAPI.incomingUnexpectedCommand(response);
+                return; //do not fire next!
+            }
             proxyAPI.incomingResponse(response);
+
         } catch (Exception e) {
             LOGGER.warn("Failed to determine response from incoming message", e);
         }
+
+        proxyAPI.setWaiting(false);
 
         //send next message
         fireNext(proxyAPI);

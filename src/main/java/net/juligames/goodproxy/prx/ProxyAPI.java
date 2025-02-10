@@ -29,17 +29,13 @@ import java.util.concurrent.TimeUnit;
 public class ProxyAPI {
 
     public static final int TIMEOUT = 5000;
-
     protected static final @NotNull Logger LOGGER = LogManager.getLogger(ProxyAPI.class);
 
     private @Nullable Session session = null;
-
     private final @NotNull HashMap<Class<? extends Response>, Queue<Response>> responseQueue = new HashMap<>();
-
+    private final @NotNull HashMap<Class<? extends Response>, Queue<Response>> unexpectedCommandQueue = new HashMap<>();
     private final @NotNull Queue<APIMessage> sendQueue = new ArrayDeque<>();
-
     private boolean waiting = false;
-
     private int id = 0;
 
     public @NotNull Session getSession() {
@@ -78,6 +74,16 @@ public class ProxyAPI {
 
         responseQueue.get(responseClazz).add(response);
         LOGGER.debug("Received response of type: {}", responseClazz.getSimpleName());
+    }
+
+    public synchronized void incomingUnexpectedCommand(@NotNull Response response) {
+        Class<? extends Response> responseClazz = response.getClass();
+        if (!unexpectedCommandQueue.containsKey(responseClazz)) {
+            unexpectedCommandQueue.put(responseClazz, new ArrayDeque<>());
+        }
+
+        unexpectedCommandQueue.get(responseClazz).add(response);
+        LOGGER.debug("Received unexpected command of type: {}", responseClazz.getSimpleName());
     }
 
 

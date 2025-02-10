@@ -50,19 +50,19 @@ public class APIMessage {
         return new APIMessage(action, null, null, null, null);
     }
 
-    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1) {
+    public static @NotNull APIMessage create(@NotNull Action action, @Nullable String value1) {
         return new APIMessage(action, value1, null, null, null);
     }
 
-    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1, @NotNull String value2) {
+    public static @NotNull APIMessage create(@NotNull Action action, @Nullable String value1, @Nullable String value2) {
         return new APIMessage(action, value1, value2, null, null);
     }
 
-    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3) {
+    public static @NotNull APIMessage create(@NotNull Action action, @Nullable String value1, @Nullable String value2, @Nullable String value3) {
         return new APIMessage(action, value1, value2, value3, null);
     }
 
-    public static @NotNull APIMessage create(@NotNull Action action, @NotNull String value1, @NotNull String value2, @NotNull String value3, @NotNull String value4) {
+    public static @NotNull APIMessage create(@NotNull Action action, @Nullable String value1, @Nullable String value2, @Nullable String value3, @Nullable String value4) {
         return new APIMessage(action, value1, value2, value3, value4);
     }
 

@@ -40,4 +40,12 @@ public abstract class Response {
     }
 
     public abstract @NotNull Action getAction();
+
+    /**
+     * Override this if the message may come unexpected.
+     * And should therefore not complete any futures, but be stored for polling
+     */
+    public boolean maybeUnexpected() {
+        return false;
+    }
 }
