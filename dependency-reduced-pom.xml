@@ -30,6 +30,14 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0-M5</version>
+        <configuration>
+          <forkCount>5</forkCount>
+          <parallel>classes</parallel>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <dependencies>

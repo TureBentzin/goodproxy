@@ -173,6 +173,12 @@ public class ProxyAPI {
         return awaitMessageWithPayload(Double::parseDouble);
     }
 
+
+    public @NotNull Future<DisplayMessage> pay(@NotNull Credentials credentials, @NotNull String destination, int amount) {
+        BankingAPI.stageCommand(this, new PayCommand(credentials, destination, amount));
+        return awaitMessage();
+    }
+
     private @NotNull CompletableFuture<DisplayMessage> awaitMessage() {
         return awaitMessage(displayMessageResponse -> {
         });

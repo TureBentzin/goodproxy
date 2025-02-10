@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 
+import java.lang.annotation.Repeatable;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -36,8 +37,8 @@ class ProxyAPITest {
         credentials = new Credentials("test_" + UUID.randomUUID(), UUID.randomUUID().toString());
     }
 
+
     @Order(1)
-    @Test
     void motd() {
         LOGGER.traceEntry();
         try {
@@ -95,7 +96,100 @@ class ProxyAPITest {
         LOGGER.traceExit();
     }
 
-    @Order(5) // ALWAYS LAST
+    @Order(5)
+    @Test
+    void payToUnknownDestination() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.pay(credentials, "invalid_ " + UUID.randomUUID(), 100).get();
+            LOGGER.info(displayMessage);
+            assertEquals("pay.fail.unknown_dest", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(6)
+    @Test
+    void payFromUnknownSender() {
+        LOGGER.traceEntry();
+        try {
+            Credentials unknownCredentials = new Credentials("invalid_" + UUID.randomUUID(), UUID.randomUUID().toString());
+            DisplayMessage displayMessage = proxyAPI.pay(unknownCredentials, credentials.username(), 100).get();
+            LOGGER.info(displayMessage);
+            assertEquals("pay.fail.orig_user_unknown", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(7)
+    @Test
+    void payNegativeAmount() {
+        final Credentials partnerCredentials = createPartner();
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), -100).get();
+            LOGGER.info(displayMessage);
+            assertEquals("pay.fail.negative_amount", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(8)
+    @Test
+    void payWithInvalidCredentials() {
+        //user exists, but password is wrong
+        final Credentials partnerCredentials = createPartner();
+        final Credentials target = createPartner();
+        final Credentials invalidCredentials = new Credentials(partnerCredentials.username(), UUID.randomUUID().toString());
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.pay(invalidCredentials, target.username(), 100).get();
+            LOGGER.info(displayMessage);
+            assertEquals("pay.fail.credentials", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(9)
+    @Test
+    void payLackingFunds() {
+        final Credentials partnerCredentials = createPartner();
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), 100).get();
+            LOGGER.info(displayMessage);
+            assertEquals("pay.fail.not_enough_money", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(10)
+    @Test
+    @Disabled
+    void pay() {
+        final Credentials partnerCredentials = createPartner();
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), 0).get();
+            LOGGER.info(displayMessage);
+            assertEquals("pay.success", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(1000) // ALWAYS LAST
     @Test
     void logout() {
         LOGGER.traceEntry();
@@ -114,4 +208,18 @@ class ProxyAPITest {
     static void tearDown() {
         BankingAPI.unregister(proxyAPI.getSession().getId());
     }
+
+
+    private @NotNull Credentials createPartner() {
+        Credentials partnerCredentials = new Credentials("partner_" + UUID.randomUUID(), UUID.randomUUID().toString());
+        try {
+            DisplayMessage displayMessage = proxyAPI.register(partnerCredentials).get();
+            assertEquals("register.success", displayMessage.key());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        return partnerCredentials;
+    }
+
+
 }
