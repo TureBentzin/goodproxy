@@ -28,7 +28,6 @@ public abstract class Response {
             case MOTD -> {
                 return new MOTDResponse(apiMessage);
             }
-
             case DISPLAY_MESSAGE -> {
                 return new DisplayMessageResponse(apiMessage);
             }

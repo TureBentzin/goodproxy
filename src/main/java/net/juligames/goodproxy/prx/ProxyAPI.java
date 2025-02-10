@@ -43,6 +43,7 @@ public class ProxyAPI {
     private int id = 0;
 
     private @NotNull String messageSet = "english";
+    private @Nullable Credentials storedCredentials;
 
     public @NotNull Session getSession() {
         if (session == null) {
@@ -104,6 +105,11 @@ public class ProxyAPI {
     }
 
     public @NotNull Future<DisplayMessage> register(@NotNull Credentials credentials) {
+        BankingAPI.stageCommand(this, new RegisterCommand(credentials));
+        return awaitMessage();
+    }
+
+    public @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials) {
         BankingAPI.stageCommand(this, new RegisterCommand(credentials));
         return awaitMessage(displayMessageResponse -> {
             this.id = displayMessageResponse.getSource().getId();
