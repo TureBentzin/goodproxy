@@ -4,11 +4,14 @@ package net.juligames.goodproxy.prx;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.Session;
 import net.juligames.goodproxy.displaymessage.DisplayMessage;
+import net.juligames.goodproxy.displaymessage.DisplayMessageWithPayload;
 import net.juligames.goodproxy.util.Credentials;
 import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.action.Action;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.Command;
+import net.juligames.goodproxy.websoc.command.v1.request.AuthenticateCommand;
+import net.juligames.goodproxy.websoc.command.v1.request.BalanceCommand;
 import net.juligames.goodproxy.websoc.command.v1.request.RegisterCommand;
 import net.juligames.goodproxy.websoc.command.v1.response.DisplayMessageResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.Response;
@@ -42,7 +45,7 @@ public class ProxyAPI {
     private boolean waiting = false;
     private int id = 0;
 
-    private @NotNull String messageSet = "english";
+    private @Nullable String messageSet = null; //TODO
     private @Nullable Credentials storedCredentials;
 
     public @NotNull Session getSession() {
@@ -110,14 +113,32 @@ public class ProxyAPI {
     }
 
     public @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials) {
-        BankingAPI.stageCommand(this, new RegisterCommand(credentials));
+        BankingAPI.stageCommand(this, new AuthenticateCommand(credentials));
         return awaitMessage(displayMessageResponse -> {
             this.id = displayMessageResponse.getSource().getId();
         });
     }
 
+    public @NotNull Future<DisplayMessageWithPayload> balance(@NotNull Credentials credentials) {
+        BankingAPI.stageCommand(this, new BalanceCommand(credentials));
+        return awaitMessageWithPayload();
+    }
+
     private @NotNull CompletableFuture<DisplayMessage> awaitMessage() {
         return awaitMessage(displayMessageResponse -> {
+        });
+    }
+
+    private @NotNull CompletableFuture<DisplayMessageWithPayload> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
+        return CompletableFuture.supplyAsync(() -> {
+            DisplayMessageResponse displayMessageResponse = waitForResponse(DisplayMessageResponse.class);
+            additionalAction.accept(displayMessageResponse);
+            return displayMessageResponse.getMessageWithPayload(messageSet);
+        }).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    private @NotNull CompletableFuture<DisplayMessageWithPayload> awaitMessageWithPayload() {
+        return awaitMessageWithPayload(displayMessageResponse -> {
         });
     }
 

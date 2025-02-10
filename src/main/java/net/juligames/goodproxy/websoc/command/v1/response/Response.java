@@ -23,7 +23,6 @@ public abstract class Response {
         //Main response logik (factory method)
 
         //MOTD reponse
-        //noinspection SwitchStatementWithTooFewBranches
         switch (apiMessage.getAction()) {
             case MOTD -> {
                 return new MOTDResponse(apiMessage);
