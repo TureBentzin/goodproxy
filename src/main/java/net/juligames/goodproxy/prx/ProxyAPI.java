@@ -7,12 +7,10 @@ import net.juligames.goodproxy.util.Credentials;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.v1.response.EchoResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.InboxResponse;
-import net.juligames.goodproxy.websoc.command.v1.response.Response;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Closeable;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Future;
 

@@ -1,8 +1,6 @@
 package net.juligames.goodproxy.websoc.action;
 
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.EnumBiMap;
 import com.google.common.collect.EnumHashBiMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +66,7 @@ public enum Action {
         this.action = name().toLowerCase();
     }
 
-    Action(final @NotNull String action) {
+    Action(@SuppressWarnings("SameParameterValue") final @NotNull String action) {
         this.action = action;
     }
 

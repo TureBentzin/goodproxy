@@ -2,7 +2,6 @@ package net.juligames.goodproxy.util;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface ThrowingFunction<T, R, E extends Throwable> {

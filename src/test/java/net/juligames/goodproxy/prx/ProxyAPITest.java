@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("LoggingSimilarMessage")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProxyAPITest {
     private static final @NotNull WebsocketManager websocketManager = new WebsocketManager();

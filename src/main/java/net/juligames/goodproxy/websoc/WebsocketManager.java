@@ -1,7 +1,6 @@
 package net.juligames.goodproxy.websoc;
 
 
-import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
@@ -16,10 +15,12 @@ import java.util.function.Consumer;
  * @author Ture Bentzin
  * @since 08-02-2025
  */
+@SuppressWarnings("LoggingSimilarMessage")
 public class WebsocketManager {
 
     private static final @NotNull Logger LOGGER = LogManager.getLogger(WebsocketManager.class);
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean openNewConnection(@NotNull Consumer<Session> action, boolean unsecure) {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         //TODO config

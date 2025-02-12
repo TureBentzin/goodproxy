@@ -22,7 +22,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
-import static net.juligames.goodproxy.websoc.BankingAPI.TIMEOUT;
 
 /**
  * @author Ture Bentzin
@@ -35,6 +34,7 @@ public class ProxyAPIImpl implements ProxyAPI {
     private @Nullable Session session = null;
     private final @NotNull BlockingQueue<APIMessage> requestQueue = new LinkedBlockingQueue<>();
     private final @NotNull Queue<CompletableFuture<Response>> responseFutures = new ConcurrentLinkedQueue<>();
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final @NotNull ConcurrentLinkedQueue<Response> unexpectedCommandQueue = new ConcurrentLinkedQueue<>();
     private final @NotNull ExecutorService requestExecutor = Executors.newSingleThreadExecutor();
     private boolean waiting = false;
@@ -100,6 +100,11 @@ public class ProxyAPIImpl implements ProxyAPI {
         } else {
             LOGGER.warn("Received unexpected response (dropping): {}", response);
         }
+    }
+
+    public void incommingUnexpectedResponse(@NotNull Response response) {
+        LOGGER.debug("Received unexpected response: {}", response);
+        unexpectedCommandQueue.add(response);
     }
 
     private @NotNull <T> CompletableFuture<T> async(@NotNull Callable<T> callable) {
@@ -273,18 +278,14 @@ public class ProxyAPIImpl implements ProxyAPI {
     @Override
     public @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials, boolean privateMessage) {
         CompletableFuture<List<String>> future = new CompletableFuture<>();
-        return async(logger -> {
-            return getInboxInternal(credentials, privateMessage).thenCompose(messageWithPayload -> {
-                int messageCount = messageWithPayload.getPayload();
-                List<String> messages = new ArrayList<>();
-                for (int i = 0; i < messageCount; i++) {
-                    getInboxMessageInternal(credentials, i, privateMessage).thenAccept(inboxResponse -> {
-                        messages.add(inboxResponse.getMessage());
-                    });
-                }
-                return CompletableFuture.completedFuture(messages);
-            }).get();
-        });
+        return async(logger -> getInboxInternal(credentials, privateMessage).thenCompose(messageWithPayload -> {
+            int messageCount = messageWithPayload.getPayload();
+            List<String> messages = new ArrayList<>();
+            for (int i = 0; i < messageCount; i++) {
+                getInboxMessageInternal(credentials, i, privateMessage).thenAccept(inboxResponse -> messages.add(inboxResponse.getMessage()));
+            }
+            return CompletableFuture.completedFuture(messages);
+        }).get());
     }
 
     @Override
@@ -305,6 +306,7 @@ public class ProxyAPIImpl implements ProxyAPI {
         });
     }
 
+    @SuppressWarnings("ConstantValue")
     private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull CompletableFuture<Response> future, @NotNull Consumer<DisplayMessageResponse> additionalAction, @NotNull Function<String, T> payloadConverter) {
         return async(() -> {
             DisplayMessageResponse displayMessageResponse = (DisplayMessageResponse) future.get();
@@ -327,6 +329,7 @@ public class ProxyAPIImpl implements ProxyAPI {
         }, s -> s);
     }
 
+    @SuppressWarnings("ConstantValue")
     private @NotNull CompletableFuture<DisplayMessage> awaitMessage(@NotNull CompletableFuture<Response> future, @NotNull Consumer<DisplayMessageResponse> additionalAction) {
         return async(() -> {
             DisplayMessageResponse displayMessageResponse = (DisplayMessageResponse) future.get();
@@ -377,10 +380,15 @@ public class ProxyAPIImpl implements ProxyAPI {
 
     @Override
     public void janitor() {
+        boolean cleanedUp = !(requestQueue.isEmpty() && responseFutures.isEmpty() && unexpectedCommandQueue.isEmpty());
         requestQueue.clear();
         responseFutures.forEach(future -> future.completeExceptionally(new IllegalStateException("Janitor cleanup")));
         responseFutures.clear();
         unexpectedCommandQueue.clear();
+
+        if (cleanedUp) {
+            LOGGER.warn("Janitor cleaned up some mess!");
+        }
     }
 
     public void populate(@NotNull Session session) {

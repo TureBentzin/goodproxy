@@ -55,7 +55,8 @@ public abstract class Response {
      * Override this if the message may come unexpected.
      * And should therefore not complete any futures, but be stored for polling
      */
-    public boolean maybeUnexpected() {
+    @SuppressWarnings("SameReturnValue")
+    public boolean probablyUnexpected() {
         return false;
     }
 

@@ -5,7 +5,6 @@ import jakarta.websocket.*;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

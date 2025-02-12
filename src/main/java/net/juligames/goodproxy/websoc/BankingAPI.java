@@ -3,7 +3,6 @@ package net.juligames.goodproxy.websoc;
 
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.Session;
-import net.juligames.goodproxy.prx.ProxyAPI;
 import net.juligames.goodproxy.prx.ProxyAPIImpl;
 import net.juligames.goodproxy.websoc.command.Command;
 import net.juligames.goodproxy.websoc.command.APIMessage;
@@ -60,9 +59,9 @@ public class BankingAPI {
 
         try {
             Response response = Response.fromMessage(incoming);
-            if (!proxyAPI.isWaiting()) {
-                LOGGER.warn("Incoming message was unexpected. Ignoring (TODO)!");
-                //TODO
+            if (!proxyAPI.isWaiting() && response.probablyUnexpected()) {
+                LOGGER.warn("Incoming message was unexpected. Storing to queue for handeling!");
+                proxyAPI.incommingUnexpectedResponse(response);
                 return; //do not fire next!
             }
             proxyAPI.incomingResponse(response);
@@ -154,11 +153,18 @@ public class BankingAPI {
     }
 
     public static void unregister(@NotNull ProxyAPIImpl proxyAPI) {
-        activeAPISessions.remove(proxyAPI.getSession().getId());
+        unregister(proxyAPI.getSession().getId());
     }
 
     public static void unregister(@NotNull String sessionID) {
-        activeAPISessions.remove(sessionID);
+        ProxyAPIImpl remove = activeAPISessions.remove(sessionID);
+        if (remove == null) {
+            LOGGER.warn("Tried to unregister a proxyAPI that was not registered!");
+        } else {
+            remove.janitor();
+            remove.close();
+        }
+
     }
 
 

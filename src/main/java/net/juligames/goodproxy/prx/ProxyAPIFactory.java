@@ -10,7 +10,7 @@ public class ProxyAPIFactory {
         throw new IllegalStateException("");
     }
 
-    public static @NotNull WebsocketManager websocketManager = new WebsocketManager();
+    public static final @NotNull WebsocketManager websocketManager = new WebsocketManager();
 
     public static @NotNull ProxyAPI create() {
         final ProxyAPIImpl proxyAPI = new ProxyAPIImpl();
