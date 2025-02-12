@@ -3,7 +3,6 @@ package net.juligames.goodproxy.prx;
 import net.juligames.goodproxy.displaymessage.DisplayMessage;
 import net.juligames.goodproxy.displaymessage.DisplayMessageWithPayload;
 import net.juligames.goodproxy.util.Credentials;
-import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.WebsocketManager;
 import net.juligames.goodproxy.websoc.command.v1.response.InboxResponse;
 import org.apache.logging.log4j.LogManager;
@@ -11,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 
-import java.lang.annotation.Repeatable;
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -36,6 +35,11 @@ class ProxyAPITest {
     @BeforeAll
     static void genCredentials() {
         credentials = new Credentials("test_" + UUID.randomUUID(), UUID.randomUUID().toString());
+    }
+
+    @AfterEach
+    void runJanitor() {
+        proxyAPI.janitor();
     }
 
 
@@ -90,7 +94,7 @@ class ProxyAPITest {
             assertEquals("balance.success", displayMessage.key());
             double balance = displayMessage.getPayload();
             LOGGER.info("Balance:  {}", balance);
-            assertEquals(0.0, balance);
+            assertEquals(1000, balance);
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
@@ -165,7 +169,7 @@ class ProxyAPITest {
         final Credentials partnerCredentials = createPartner();
         LOGGER.traceEntry();
         try {
-            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), 100).get();
+            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), 1001).get();
             LOGGER.info(displayMessage);
             assertEquals("pay.fail.not_enough_money", displayMessage.key());
         } catch (InterruptedException | ExecutionException e) {
@@ -176,17 +180,23 @@ class ProxyAPITest {
 
     @Order(10)
     @Test
-    @Disabled
     void pay() {
         final Credentials partnerCredentials = createPartner();
         LOGGER.traceEntry();
         try {
-            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), 0).get();
+            DisplayMessage displayMessage = proxyAPI.pay(credentials, partnerCredentials.username(), 1000).get();
             LOGGER.info(displayMessage);
             assertEquals("pay.success", displayMessage.key());
+
+            DisplayMessageWithPayload<Double> messageWithPayload = proxyAPI.balance(credentials).get();
+            LOGGER.info(messageWithPayload);
+            assertEquals("balance.success", messageWithPayload.key());
+            double balance = messageWithPayload.getPayload();
+            assertEquals(0.0, balance);
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+
         LOGGER.traceExit();
     }
 
@@ -235,10 +245,10 @@ class ProxyAPITest {
         try {
             DisplayMessageWithPayload<Integer> displayMessage = proxyAPI.getInbox(credentials, true).get();
             assertEquals("", displayMessage.message());
-            assertEquals("message_count", displayMessage.key());
+            assertEquals("pm_message_count", displayMessage.key());
             int inboxSize = displayMessage.getPayload();
             LOGGER.info("Inbox size:  {}", inboxSize);
-            assertEquals(0, inboxSize);
+            assertEquals(1, inboxSize);
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
@@ -251,10 +261,10 @@ class ProxyAPITest {
         LOGGER.traceEntry();
         try {
             DisplayMessageWithPayload<Integer> displayMessage = proxyAPI.getInbox(credentials, true).get();
-            assertEquals("message_count", displayMessage.key());
+            assertEquals("pm_message_count", displayMessage.key());
             assertEquals("", displayMessage.message());
             int inboxSize = displayMessage.getPayload();
-            assertEquals(0, inboxSize);
+            assertEquals(1, inboxSize);
             InboxResponse inboxResponse = proxyAPI.getInboxMessage(credentials, 1, true).get();
             int messageID = inboxResponse.getMessageID();
             assertEquals(1, messageID);
@@ -283,7 +293,11 @@ class ProxyAPITest {
 
     @AfterAll
     static void tearDown() {
-        proxyAPI.close();
+        try {
+            proxyAPI.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

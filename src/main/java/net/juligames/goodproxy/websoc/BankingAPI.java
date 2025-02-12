@@ -10,17 +10,24 @@ import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.v1.response.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.CheckReturnValue;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * @author Ture Bentzin
  * @since 08-02-2025
  */
 public class BankingAPI {
+
+    public static final long TIMEOUT = 5000;
+
 
     public static final @NotNull String API_URL = "ws://befator.befatorinc.de:5000/banking";
     public static final @NotNull Logger LOGGER = LogManager.getLogger(BankingAPI.class);
@@ -54,8 +61,8 @@ public class BankingAPI {
         try {
             Response response = Response.fromMessage(incoming);
             if (!proxyAPI.isWaiting()) {
-                LOGGER.warn("Incoming message was unexpected. Moving to Queue for polling!");
-                proxyAPI.incomingUnexpectedCommand(response);
+                LOGGER.warn("Incoming message was unexpected. Ignoring (TODO)!");
+                //TODO
                 return; //do not fire next!
             }
             proxyAPI.incomingResponse(response);
@@ -76,19 +83,21 @@ public class BankingAPI {
      * @param proxyAPI The proxyAPI to send the command with
      * @param command  The command to send
      */
-    public synchronized static void stageCommand(@NotNull ProxyAPIImpl proxyAPI, @NotNull APIMessage command) {
-        Session session = proxyAPI.getSession();
-        final String sessionID = session.getId();
-
+    @CheckReturnValue
+    public synchronized static @NotNull CompletableFuture<Response> stageCommand(@NotNull ProxyAPIImpl proxyAPI, @NotNull APIMessage command) {
+        CompletableFuture<Response> future = new CompletableFuture<>();
         boolean blocked = proxyAPI.isWaiting();
         if (!blocked) {
             //fire now
             sendMessage(proxyAPI, command);
         } else {
-            final Queue<APIMessage> queue = proxyAPI.getSendQueue();
+            final Queue<APIMessage> queue = proxyAPI.getRequestQueue();
             queue.add(command);
             LOGGER.info("Staged {} for sending. Current Position: {}", command, queue.size());
         }
+        proxyAPI.addResponse(future);
+        future.orTimeout(TIMEOUT, MILLISECONDS);
+        return future;
 
     }
 
@@ -98,8 +107,9 @@ public class BankingAPI {
      * @param proxyAPI proxyAPI to send the command with
      * @param command  The command to send
      */
-    public static void stageCommand(@NotNull ProxyAPIImpl proxyAPI, @NotNull Command command) {
-        stageCommand(proxyAPI, command.pack());
+    @CheckReturnValue
+    public static @NotNull CompletableFuture<Response> stageCommand(@NotNull ProxyAPIImpl proxyAPI, @NotNull Command command) {
+        return stageCommand(proxyAPI, command.pack());
     }
 
     private static void sendMessage(@NotNull ProxyAPIImpl proxyAPI, @NotNull APIMessage command) {
@@ -127,7 +137,7 @@ public class BankingAPI {
     }
 
     private synchronized static void fireNext(@NotNull ProxyAPIImpl proxyAPI) {
-        final Queue<APIMessage> queue = proxyAPI.getSendQueue();
+        final Queue<APIMessage> queue = proxyAPI.getRequestQueue();
         if (!queue.isEmpty()) {
             sendMessage(proxyAPI, queue.poll());
         } else {

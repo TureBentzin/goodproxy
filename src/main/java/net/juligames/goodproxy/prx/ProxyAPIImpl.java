@@ -6,6 +6,7 @@ import jakarta.websocket.Session;
 import net.juligames.goodproxy.displaymessage.DisplayMessage;
 import net.juligames.goodproxy.displaymessage.DisplayMessageWithPayload;
 import net.juligames.goodproxy.util.Credentials;
+import net.juligames.goodproxy.util.ThrowingFunction;
 import net.juligames.goodproxy.websoc.BankingAPI;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import net.juligames.goodproxy.websoc.command.v1.request.*;
@@ -16,11 +17,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static net.juligames.goodproxy.websoc.BankingAPI.TIMEOUT;
 
 /**
  * @author Ture Bentzin
@@ -28,19 +30,19 @@ import java.util.function.Function;
  */
 @SuppressWarnings("unused")
 public class ProxyAPIImpl implements ProxyAPI {
-
-    public static final int TIMEOUT = 5000;
     protected static final @NotNull Logger LOGGER = LogManager.getLogger(ProxyAPIImpl.class);
 
     private @Nullable Session session = null;
-    private final @NotNull HashMap<Class<? extends Response>, Queue<Response>> responseQueue = new HashMap<>();
-    private final @NotNull HashMap<Class<? extends Response>, Queue<Response>> unexpectedCommandQueue = new HashMap<>();
-    private final @NotNull Queue<APIMessage> sendQueue = new ArrayDeque<>();
+    private final @NotNull BlockingQueue<APIMessage> requestQueue = new LinkedBlockingQueue<>();
+    private final @NotNull Queue<CompletableFuture<Response>> responseFutures = new ConcurrentLinkedQueue<>();
+    private final @NotNull ConcurrentLinkedQueue<Response> unexpectedCommandQueue = new ConcurrentLinkedQueue<>();
+    private final @NotNull ExecutorService requestExecutor = Executors.newSingleThreadExecutor();
     private boolean waiting = false;
     private int id = 0;
 
     private final @Nullable String messageSet = null; //TODO
     private @Nullable Credentials storedCredentials;
+
 
     private @NotNull Credentials credentials() {
         if (storedCredentials == null) {
@@ -49,6 +51,7 @@ public class ProxyAPIImpl implements ProxyAPI {
         return storedCredentials;
     }
 
+    @Override
     public @NotNull Session getSession() {
         if (session == null) {
             throw new IllegalStateException("Session is null");
@@ -90,28 +93,47 @@ public class ProxyAPIImpl implements ProxyAPI {
      *
      * @param response the response
      */
-    public synchronized void incomingResponse(@NotNull Response response) {
-        Class<? extends Response> responseClazz = response.getClass();
-        if (!responseQueue.containsKey(responseClazz)) {
-            responseQueue.put(responseClazz, new ArrayDeque<>());
+    public void incomingResponse(@NotNull Response response) {
+        CompletableFuture<Response> future = responseFutures.poll();
+        if (future != null) {
+            future.complete(response);
+        } else {
+            LOGGER.warn("Received unexpected response (dropping): {}", response);
         }
-        responseQueue.get(responseClazz).add(response);
-        LOGGER.debug("Received response of type: {}", responseClazz.getSimpleName());
     }
 
-    /**
-     * INTERNAL
-     *
-     * @param response the response
-     */
-    public synchronized void incomingUnexpectedCommand(@NotNull Response response) {
-        Class<? extends Response> responseClazz = response.getClass();
-        if (!unexpectedCommandQueue.containsKey(responseClazz)) {
-            unexpectedCommandQueue.put(responseClazz, new ArrayDeque<>());
+    private @NotNull <T> CompletableFuture<T> async(@NotNull Callable<T> callable) {
+        try {
+            return supplyAsync(() -> {
+                Logger logger = LogManager.getLogger();
+                try {
+                    return callable.call();
+                } catch (Exception e) {
+                    logger.debug("Failed to execute async task", e);
+                    throw new RuntimeException("Failed to execute async task", e);
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.throwing(e);
+            return CompletableFuture.failedFuture(e);
         }
+    }
 
-        unexpectedCommandQueue.get(responseClazz).add(response);
-        LOGGER.debug("Received unexpected command of type: {}", responseClazz.getSimpleName());
+    private @NotNull <T> CompletableFuture<T> async(@NotNull ThrowingFunction<Logger, T, Exception> callableWithLogger) {
+        try {
+            return supplyAsync(() -> {
+                Logger logger = LogManager.getLogger();
+                try {
+                    return callableWithLogger.apply(logger);
+                } catch (Exception e) {
+                    logger.debug("Failed to execute async task", e);
+                    throw new RuntimeException("Failed to execute async task", e);
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.throwing(e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
 
@@ -122,13 +144,7 @@ public class ProxyAPIImpl implements ProxyAPI {
      */
     @Override
     public @NotNull Future<String> motd() {
-        BankingAPI.stageCommand(this, new MOTDCommand());
-
-        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-            MOTDResponse poll = waitForResponse(MOTDResponse.class);
-            return poll.getMOTD();
-        });
-        return future.orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+        return async(() -> ((MOTDResponse) BankingAPI.stageCommand(this, new MOTDCommand()).get()).getMOTD());
     }
 
     /**
@@ -139,8 +155,7 @@ public class ProxyAPIImpl implements ProxyAPI {
      */
     @Override
     public @NotNull Future<DisplayMessage> register(@NotNull Credentials credentials) {
-        BankingAPI.stageCommand(this, new RegisterCommand(credentials));
-        return awaitMessage();
+        return awaitMessage(BankingAPI.stageCommand(this, new RegisterCommand(credentials)));
     }
 
     /**
@@ -151,8 +166,7 @@ public class ProxyAPIImpl implements ProxyAPI {
      */
     @Override
     public @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials) {
-        BankingAPI.stageCommand(this, new AuthenticateCommand(credentials));
-        return awaitMessage(displayMessageResponse -> {
+        return awaitMessage(BankingAPI.stageCommand(this, new AuthenticateCommand(credentials)), displayMessageResponse -> {
             id = Integer.parseInt(Objects.requireNonNull(displayMessageResponse.getSource().getValue3(), "id is null"));
             storedCredentials = credentials;
         });
@@ -171,8 +185,7 @@ public class ProxyAPIImpl implements ProxyAPI {
      */
     @Override
     public @NotNull Future<DisplayMessage> logout(@NotNull Credentials credentials) {
-        BankingAPI.stageCommand(this, new LogoutCommand(credentials));
-        return awaitMessage();
+        return awaitMessage(BankingAPI.stageCommand(this, new LogoutCommand(credentials)));
     }
 
     @Override
@@ -188,8 +201,7 @@ public class ProxyAPIImpl implements ProxyAPI {
      */
     @Override
     public @NotNull Future<DisplayMessageWithPayload<Double>> balance(@NotNull Credentials credentials) {
-        BankingAPI.stageCommand(this, new BalanceCommand(credentials));
-        return awaitMessageWithPayload(Double::parseDouble);
+        return awaitMessageWithPayload(BankingAPI.stageCommand(this, new BalanceCommand(credentials)), Double::parseDouble);
     }
 
     @Override
@@ -199,8 +211,7 @@ public class ProxyAPIImpl implements ProxyAPI {
 
     @Override
     public @NotNull Future<DisplayMessage> pay(@NotNull Credentials credentials, @NotNull String destination, int amount) {
-        BankingAPI.stageCommand(this, new PayCommand(credentials, destination, amount));
-        return awaitMessage();
+        return awaitMessage(BankingAPI.stageCommand(this, new PayCommand(credentials, destination, amount)));
     }
 
     @Override
@@ -234,8 +245,7 @@ public class ProxyAPIImpl implements ProxyAPI {
      * @return the number of messages in inbox: (0 - n) (n messages in box)
      */
     private @NotNull CompletableFuture<DisplayMessageWithPayload<Integer>> getInboxInternal(@NotNull Credentials credentials, boolean privateMessage) {
-        BankingAPI.stageCommand(this, new GetInboxCommand(credentials, privateMessage));
-        return awaitMessageWithPayload(payload -> {
+        return awaitMessageWithPayload(BankingAPI.stageCommand(this, new GetInboxCommand(credentials, privateMessage)), payload -> {
             return Integer.parseInt(Objects.requireNonNull(payload, "payload is null"));
         });
     }
@@ -251,9 +261,7 @@ public class ProxyAPIImpl implements ProxyAPI {
     }
 
     private @NotNull CompletableFuture<InboxResponse> getInboxMessageInternal(@NotNull Credentials credentials, int messageID, boolean privateMessage) {
-        BankingAPI.stageCommand(this, new GetInboxCommand(credentials, messageID, privateMessage));
-        return CompletableFuture.supplyAsync(() ->
-                waitForResponse(InboxResponse.class)).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+        return async(() -> (InboxResponse) BankingAPI.stageCommand(this, new GetInboxCommand(credentials, messageID, privateMessage)).get());
     }
 
     @Override
@@ -265,108 +273,80 @@ public class ProxyAPIImpl implements ProxyAPI {
     @Override
     public @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials, boolean privateMessage) {
         CompletableFuture<List<String>> future = new CompletableFuture<>();
-        BankingAPI.stageCommand(this, new GetInboxCommand(credentials));
-
-        getInboxInternal(credentials, privateMessage).thenAccept(displayMessageWithPayload -> {
-            int messageCount = displayMessageWithPayload.getPayload();
-            List<String> messages = new ArrayList<>();
-            for (int i = 0; i < messageCount; i++) {
-                getInboxMessageInternal(credentials, i, privateMessage).thenAccept(inboxResponse -> {
-                    messages.add(inboxResponse.getMessage());
-                    if (messages.size() == messageCount) {
-                        future.complete(messages);
-                    }
-                });
-            }
+        return async(logger -> {
+            return getInboxInternal(credentials, privateMessage).thenCompose(messageWithPayload -> {
+                int messageCount = messageWithPayload.getPayload();
+                List<String> messages = new ArrayList<>();
+                for (int i = 0; i < messageCount; i++) {
+                    getInboxMessageInternal(credentials, i, privateMessage).thenAccept(inboxResponse -> {
+                        messages.add(inboxResponse.getMessage());
+                    });
+                }
+                return CompletableFuture.completedFuture(messages);
+            }).get();
         });
-        return future;
     }
 
     @Override
     public @NotNull Future<EchoResponse> echo(@NotNull String message) {
-        BankingAPI.stageCommand(this, new EchoCommand(message));
-        return CompletableFuture.supplyAsync(() -> waitForResponse(EchoResponse.class)).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+        return async(() -> ((EchoResponse) BankingAPI.stageCommand(this, new EchoCommand(message)).get()));
     }
 
     @Override
     public @NotNull Future<EchoResponse> echo() {
-        BankingAPI.stageCommand(this, new EchoCommand());
-        return CompletableFuture.supplyAsync(() -> waitForResponse(EchoResponse.class)).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
-
+        return async(() -> ((EchoResponse) BankingAPI.stageCommand(this, new EchoCommand()).get()));
     }
 
     /// INTERNAL
 
 
-    private @NotNull CompletableFuture<DisplayMessage> awaitMessage() {
-        return awaitMessage(displayMessageResponse -> {
+    private @NotNull CompletableFuture<DisplayMessage> awaitMessage(@NotNull CompletableFuture<Response> future) {
+        return awaitMessage(future, displayMessageResponse -> {
         });
     }
 
-    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction, @NotNull Function<String, T> payloadConverter) {
-        return CompletableFuture.supplyAsync(() -> {
-            DisplayMessageResponse displayMessageResponse = waitForResponse(DisplayMessageResponse.class);
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull CompletableFuture<Response> future, @NotNull Consumer<DisplayMessageResponse> additionalAction, @NotNull Function<String, T> payloadConverter) {
+        return async(() -> {
+            DisplayMessageResponse displayMessageResponse = (DisplayMessageResponse) future.get();
             additionalAction.accept(displayMessageResponse);
             return displayMessageResponse.getMessageWithPayload(messageSet, payloadConverter);
-        }).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
+        });
     }
 
-    private @NotNull CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
-        return awaitMessageWithPayload(additionalAction, s -> s);
+    private @NotNull CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload(@NotNull CompletableFuture<Response> future, @NotNull Consumer<DisplayMessageResponse> additionalAction) {
+        return awaitMessageWithPayload(future, additionalAction, s -> s);
     }
 
-    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull Function<String, T> payloadConverter) {
-        return awaitMessageWithPayload(displayMessageResponse -> {
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<T>> awaitMessageWithPayload(@NotNull CompletableFuture<Response> future, @NotNull Function<String, T> payloadConverter) {
+        return awaitMessageWithPayload(future, displayMessageResponse -> {
         }, payloadConverter);
     }
 
-    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload() {
-        return awaitMessageWithPayload(displayMessageResponse -> {
+    private @NotNull <T> CompletableFuture<DisplayMessageWithPayload<String>> awaitMessageWithPayload(@NotNull CompletableFuture<Response> future) {
+        return awaitMessageWithPayload(future, displayMessageResponse -> {
         }, s -> s);
     }
 
-    private @NotNull CompletableFuture<DisplayMessage> awaitMessage(@NotNull Consumer<DisplayMessageResponse> additionalAction) {
-        return CompletableFuture.supplyAsync(() -> {
-            DisplayMessageResponse displayMessageResponse = waitForResponse(DisplayMessageResponse.class);
+    private @NotNull CompletableFuture<DisplayMessage> awaitMessage(@NotNull CompletableFuture<Response> future, @NotNull Consumer<DisplayMessageResponse> additionalAction) {
+        return async(() -> {
+            DisplayMessageResponse displayMessageResponse = (DisplayMessageResponse) future.get();
             additionalAction.accept(displayMessageResponse);
             return displayMessageResponse.getMessage(messageSet);
-        }).orTimeout(TIMEOUT, TimeUnit.MILLISECONDS);
-    }
-
-    private <T extends Response> @NotNull T waitForResponse(@NotNull Class<T> type) {
-        @NotNull Logger logger = LogManager.getLogger();
-        if (!responseQueue.containsKey(type)) {
-            responseQueue.put(type, new ArrayDeque<>());
-        }
-        Queue<Response> responses = responseQueue.get(type);
-        synchronized (responses) { //TODO: Das reicht nicht aus, da diese method auch von anderen threads aufgerufen wird und unklar ist, wann diese hier ankommen. Die Reihenfolge ist nicht garantiert
-            while (responses.isEmpty()) {
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    logger.error("wait was interrupted", e);
-                }
-            }
-
-            //noinspection ConstantValue
-            if (responses.isEmpty()) {
-                throw new IllegalStateException("No response available");
-            }
-
-            LOGGER.debug("QUEUE: {}", responses);
-            //noinspection unchecked
-            return (T) responses.poll();
-        }
+        });
     }
 
 
     @Override
-    public @NotNull Map<Class<? extends Response>, Queue<Response>> copyResponseQueue() {
-        return Map.copyOf(responseQueue);
+    public @NotNull Queue<APIMessage> copyRequestQueue() {
+        return new ArrayDeque<>(requestQueue);
     }
 
-    public @NotNull Queue<APIMessage> getSendQueue() {
-        return sendQueue;
+    public @NotNull BlockingQueue<APIMessage> getRequestQueue() {
+        return requestQueue;
+    }
+
+    public void addResponse(@NotNull CompletableFuture<Response> future) {
+        responseFutures.add(future);
     }
 
     @Override
@@ -384,6 +364,7 @@ public class ProxyAPIImpl implements ProxyAPI {
         BankingAPI.unregister(this);
     }
 
+    @Override
     public void awaitSession() {
         while (!checkSession()) {
             try {
@@ -394,11 +375,20 @@ public class ProxyAPIImpl implements ProxyAPI {
         }
     }
 
+    @Override
+    public void janitor() {
+        requestQueue.clear();
+        responseFutures.forEach(future -> future.completeExceptionally(new IllegalStateException("Janitor cleanup")));
+        responseFutures.clear();
+        unexpectedCommandQueue.clear();
+    }
+
     public void populate(@NotNull Session session) {
         this.session = session;
         //notifyAll();
     }
 
+    @Override
     public int getId() {
         return id;
     }
