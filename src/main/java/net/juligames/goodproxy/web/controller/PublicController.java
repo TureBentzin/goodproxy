@@ -1,13 +1,13 @@
 package net.juligames.goodproxy.web.controller;
 
+import jakarta.validation.constraints.Null;
 import net.juligames.goodproxy.prx.ProxyAPI;
 import net.juligames.goodproxy.prx.ProxyAPIFactory;
-import net.juligames.goodproxy.web.Echo;
-import net.juligames.goodproxy.web.MOTD;
-import net.juligames.goodproxy.web.WebResponse;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
@@ -25,19 +25,21 @@ public class PublicController {
      * Get the message of the day
      */
     @GetMapping("/motd")
-    public @NotNull WebResponse<MOTD> motd() {
-        return WebResponse.from(() -> new MOTD(API.motd().get()));
+    public @NotNull String motd() throws ExecutionException, InterruptedException {
+        return API.motd().get();
     }
 
     @RequestMapping(path = "/echo", method = {RequestMethod.POST, RequestMethod.GET})
-    public @NotNull WebResponse<Echo> echo(
+    public @NotNull String echo(
             @RequestParam(value = "message", required = false) @NotNull Optional<String> message
-    ) {
-        return WebResponse.from(() -> {
-            if (message.isEmpty()) {
-                return new Echo(API.echo().get().getValue1());
-            } else return new Echo(API.echo(message.get()).get().getValue1());
-        });
+    ) throws Exception {
+        @Nullable String result = null;
+        if (message.isPresent()) {
+            result = API.echo(message.get()).get().getValue1();
+        } else {
+            result = API.echo().get().getValue1();
+        }
+        return Objects.requireNonNull(result, "Result is null");
     }
 
 
