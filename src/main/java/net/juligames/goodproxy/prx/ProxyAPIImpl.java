@@ -298,6 +298,31 @@ public class ProxyAPIImpl implements ProxyAPI {
         return async(() -> ((EchoResponse) BankingAPI.stageCommand(this, new EchoCommand()).get()));
     }
 
+
+    @Override
+    public @NotNull Future<DisplayMessage> readInbox(@NotNull Credentials credentials, int messageID) {
+        return readInboxInternal(credentials, messageID, false);
+    }
+
+    @Override
+    public @NotNull Future<DisplayMessage> readInbox(int messageID) {
+        return readInboxInternal(credentials(), messageID, false);
+    }
+
+    @Override
+    public @NotNull Future<DisplayMessage> readPrivateInbox(@NotNull Credentials credentials, int messageID) {
+        return readInboxInternal(credentials, messageID, true);
+    }
+
+    @Override
+    public @NotNull Future<DisplayMessage> readPrivateInbox(int messageID) {
+        return readInboxInternal(credentials(), messageID, true);
+    }
+
+    private @NotNull Future<DisplayMessage> readInboxInternal(@NotNull Credentials credentials, int messageID, boolean privateMessages) {
+        return awaitMessage(BankingAPI.stageCommand(this, new ReadInboxCommand(credentials, messageID, privateMessages)));
+    }
+
     /// INTERNAL
 
 

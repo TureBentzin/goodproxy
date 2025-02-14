@@ -12,9 +12,4 @@ public class IndexController {
     public @NotNull String index() {
         return "index";
     }
-
-    @GetMapping("/v0")
-    public @NotNull String v0() {
-        return "v0";
-    }
 }

@@ -58,6 +58,14 @@ public interface ProxyAPI extends Closeable {
 
     @NotNull Future<EchoResponse> echo();
 
+    @NotNull Future<DisplayMessage> readInbox(@NotNull Credentials credentials, int messageID);
+
+    @NotNull Future<DisplayMessage> readInbox(int messageID);
+
+    @NotNull Future<DisplayMessage> readPrivateInbox(@NotNull Credentials credentials, int messageID);
+
+    @NotNull Future<DisplayMessage> readPrivateInbox(int messageID);
+
     @NotNull Queue<APIMessage> copyRequestQueue();
 
     boolean isWaiting();

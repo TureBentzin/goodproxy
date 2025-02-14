@@ -277,6 +277,48 @@ class ProxyAPITest {
         LOGGER.traceExit();
     }
 
+    @Order(15)
+    @Test
+    @Disabled("Server closes connection after reading a message")
+    void readInbox() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.readInbox(credentials, 1).get();
+            LOGGER.info(displayMessage);
+            assertEquals("read_inbox.success", displayMessage.key());
+
+            DisplayMessageWithPayload<Integer> messageWithPayload = proxyAPI.getInbox(credentials).get();
+            assertEquals("message_count", messageWithPayload.key());
+            assertEquals("", messageWithPayload.message());
+            int inboxSize = messageWithPayload.getPayload();
+            assertEquals(0, inboxSize);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
+    @Order(16)
+    @Test
+    @Disabled("Server closes connection after reading a private message")
+    void readPrivateInbox() {
+        LOGGER.traceEntry();
+        try {
+            DisplayMessage displayMessage = proxyAPI.readPrivateInbox(credentials, 1).get();
+            LOGGER.info(displayMessage);
+            assertEquals("read_pm_inbox.success", displayMessage.key());
+
+            DisplayMessageWithPayload<Integer> messageWithPayload = proxyAPI.getInbox(credentials, true).get();
+            assertEquals("pm_message_count", messageWithPayload.key());
+            assertEquals("", messageWithPayload.message());
+            int inboxSize = messageWithPayload.getPayload();
+            assertEquals(0, inboxSize);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.traceExit();
+    }
+
     @Order(1000) // ALWAYS LAST
     @Test
     void logout() {
