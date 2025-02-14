@@ -18,11 +18,8 @@ import java.util.Map;
 @Configuration
 public class OpenAPIConfiguration {
 
-    @Autowired
-    private @NotNull ProfileUtil profileUtil;
-
     @Bean
-    public @NotNull OpenAPI customOpenAPI() {
+    public @NotNull OpenAPI customOpenAPI(ProfileUtil profileUtil) {
         OpenAPI goodProxyApi = new OpenAPI()
                 .info(new Info()
                         .title("GoodProxy API")
@@ -33,18 +30,16 @@ public class OpenAPIConfiguration {
                 .components(new Components().responses(globalResponses()));
 
         //check for prod profile
-
         if (profileUtil.isProfileActive("prod")) {
             goodProxyApi.addServersItem(new Server().url("https://banking.juligames.net").description("Production server"));
         } else {
             goodProxyApi.addServersItem(new Server().url("http://localhost:8080").description("Local development server"));
         }
 
-
         return goodProxyApi;
     }
 
-    private Map<String, ApiResponse> globalResponses() {
+    private @NotNull Map<String, ApiResponse> globalResponses() {
         Map<String, ApiResponse> responses = new HashMap<>();
 
         // 1xx Informational

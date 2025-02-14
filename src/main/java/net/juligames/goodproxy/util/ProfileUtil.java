@@ -1,6 +1,7 @@
 package net.juligames.goodproxy.util;
 
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ public class ProfileUtil {
     public ProfileUtil(@NotNull Environment environment) {
         this.environment = environment;
     }
+
 
     /**
      * Checks if a specific profile is active.
