@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.concurrent.ExecutionException;
 
 @RestController
-@RequestMapping("api/v0/")
+@RequestMapping("/api/v0")
 public class MOTDController {
 
     private static final @NotNull ProxyAPI API = ProxyAPIFactory.create();
