@@ -80,4 +80,14 @@ public class JwtFilter extends OncePerRequestFilter {
     public static void removeSession(@NotNull String jwt) {
         activeSessions.remove(jwt).attemptClose();
     }
+
+    public static @NotNull ConcurrentHashMap<String, ProxyAPI> getActiveSessions() {
+        return activeSessions;
+    }
+
+
+    public static @NotNull ProxyAPI getSession(@NotNull String jwt) {
+        return activeSessions.get(jwt);
+    }
+
 }

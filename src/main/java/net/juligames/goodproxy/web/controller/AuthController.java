@@ -90,16 +90,18 @@ public class AuthController {
         return new Authentication(jwt, message.message());
     }
 
+
+    @Operation(
+            summary = "Logout",
+            description = "Logs out the user and invalidates the JWT token.",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Logout successful")
+            }
+    )
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/logout")
     public void logout(@RequestHeader("Authorization") String token) {
         String jwt = token.substring(7);
         JwtFilter.removeSession(jwt);
-    }
-
-    @GetMapping("/proxy-info")
-    public @NotNull ProxyApiInfo getProxyInfo(@RequestHeader("Authorization") String token) {
-        String jwt = token.substring(7);
-        return new ProxyApiInfo(jwtUtil.extractUsername(jwt));
     }
 }
