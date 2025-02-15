@@ -35,6 +35,16 @@ public class JwtUtil {
     }
 
     /**
+     * Generates a JWT with username and password as claims.
+     *
+     * @param credentials the credentials
+     * @return signed JWT
+     */
+    public @NotNull String generateToken(@NotNull Credentials credentials) {
+        return generateToken(credentials.username(), credentials.password());
+    }
+
+    /**
      * Validates the JWT.
      *
      * @param token JWT token

@@ -1,5 +1,10 @@
 package net.juligames.goodproxy.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import net.juligames.goodproxy.displaymessage.DisplayMessage;
 import net.juligames.goodproxy.prx.ProxyAPI;
@@ -27,13 +32,25 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
+    @Operation(
+            summary = "Register a new user",
+            description = "Registers a new user with the provided credentials.",
+            requestBody = @RequestBody(
+                    description = "Username and password in JSON format",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = Credentials.class))
+            ),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content(schema = @Schema(implementation = Authentication.class)),
+                            headers = {@io.swagger.v3.oas.annotations.headers.Header(name = "Authorization", description = "Bearer token", required = true)})
+            }
+    )
     @PostMapping("/register")
-    public @NotNull Authentication register(@RequestParam @NotNull String username,
-                                            @RequestParam @NotNull String password) throws ExecutionException, InterruptedException {
-        String jwt = jwtUtil.generateToken(username, password);
+    public @NotNull Authentication register(@NotNull Credentials credentials) throws ExecutionException, InterruptedException {
+        String jwt = jwtUtil.generateToken(credentials);
         ProxyAPI proxyAPI = ProxyAPIFactory.create();
 
-        DisplayMessage message = proxyAPI.register(new Credentials(username, password)).get();
+        DisplayMessage message = proxyAPI.register(credentials).get();
         if (!"register.success".equals(message.key())) {
             proxyAPI.attemptClose();
             throw new RuntimeException("Registration failed");
@@ -44,13 +61,25 @@ public class AuthController {
         return new Authentication(jwt, message.message());
     }
 
+    @Operation(
+            summary = "Authenticate and obtain JWT token",
+            description = "Returns a JWT token if the provided credentials are valid.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Username and password in JSON format",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = Credentials.class))
+            ),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = Authentication.class)),
+                            headers = {@io.swagger.v3.oas.annotations.headers.Header(name = "Authorization", description = "Bearer token", required = true)})
+            }
+    )
     @PostMapping("/authenticate")
-    public @NotNull Authentication authenticate(@NotNull String username,
-                                                @NotNull String password) throws ExecutionException, InterruptedException {
-        String jwt = jwtUtil.generateToken(username, password);
+    public @NotNull Authentication authenticate(@NotNull Credentials credentials) throws ExecutionException, InterruptedException {
+        String jwt = jwtUtil.generateToken(credentials);
         ProxyAPI proxyAPI = ProxyAPIFactory.create();
 
-        DisplayMessage message = proxyAPI.authenticate(new Credentials(username, password)).get();
+        DisplayMessage message = proxyAPI.authenticate(credentials).get();
         if (!"auth.success".equals(message.key())) {
             proxyAPI.attemptClose();
             throw new RESTException(RESTError.INVALID_CREDS, message.message());
