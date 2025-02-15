@@ -5,6 +5,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import net.juligames.goodproxy.util.ProfileUtil;
 import org.jetbrains.annotations.NotNull;
@@ -24,10 +26,18 @@ public class OpenAPIConfiguration {
                 .info(new Info()
                         .title("GoodProxy API")
                         .version("v0.0.1")
-                        .description("")
+                        .description("API documentation for GoodProxy")
                         .contact(new Contact().email("bentzin@tdrstudios.de"))
                 )
-                .components(new Components().responses(globalResponses()));
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth", new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                        )
+                        .responses(globalResponses()) // Add global responses properly
+                );
 
         //check for prod profile
         if (profileUtil.isProfileActive("prod")) {

@@ -22,7 +22,7 @@ public class GoodProxy {
         SpringApplication.run(GoodProxy.class, args);
 
         rootLogger.info("""
-                                         _____                                                                         _____\s
+                \n                         _____                                                                         _____\s
                                         ( ___ )-----------------------------------------------------------------------( ___ )
                                          |   |                                                                         |   |\s
                                          |   |       _____                    _ ______                                 |   |\s
@@ -33,7 +33,7 @@ public class GoodProxy {
                                          |   |       \\____/ \\___/  \\___/  \\__,_|\\_|    |_|    \\___/ /_/\\_\\ \\__, |      |   |\s
                                          |   |                                                              __/ |      |   |\s
                                          |   |                                                             |___/       |   |\s
-                                         |___|         By Ture Bentzin <ture.bentzin@alumni.fh-aachen.de>             |___|\s
+                                         |___|         By Ture Bentzin <ture.bentzin@alumni.fh-aachen.de>              |___|\s
                                         (_____)-----------------------------------------------------------------------(_____)
                 """);
         logger.info("This proxy will make your accounting experience accountable again!");

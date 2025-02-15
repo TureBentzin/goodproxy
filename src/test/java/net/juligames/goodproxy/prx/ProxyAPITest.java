@@ -279,7 +279,7 @@ class ProxyAPITest {
 
     @Order(15)
     @Test
-    @Disabled("Server closes connection after reading a message")
+    //@Disabled("Server closes connection after reading a message")
     void readInbox() {
         LOGGER.traceEntry();
         try {
@@ -300,13 +300,13 @@ class ProxyAPITest {
 
     @Order(16)
     @Test
-    @Disabled("Server closes connection after reading a private message")
+   // @Disabled("Server closes connection after reading a private message")
     void readPrivateInbox() {
         LOGGER.traceEntry();
         try {
             DisplayMessage displayMessage = proxyAPI.readPrivateInbox(credentials, 1).get();
             LOGGER.info(displayMessage);
-            assertEquals("read_pm_inbox.success", displayMessage.key());
+            assertEquals("read_pm.success", displayMessage.key());
 
             DisplayMessageWithPayload<Integer> messageWithPayload = proxyAPI.getInbox(credentials, true).get();
             assertEquals("pm_message_count", messageWithPayload.key());
@@ -337,14 +337,15 @@ class ProxyAPITest {
     @AfterAll
     static void tearDown() {
         try {
-            proxyAPI.close();
+            if(proxyAPI.checkSession())
+                proxyAPI.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
 
-    private @NotNull Credentials createPartner() {
+    public static @NotNull Credentials createPartner() {
         Credentials partnerCredentials = new Credentials("partner_" + UUID.randomUUID(), UUID.randomUUID().toString());
         try {
             DisplayMessage displayMessage = proxyAPI.register(partnerCredentials).get();

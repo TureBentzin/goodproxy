@@ -172,7 +172,13 @@ public class ProxyAPIImpl implements ProxyAPI {
     @Override
     public @NotNull Future<DisplayMessage> authenticate(@NotNull Credentials credentials) {
         return awaitMessage(BankingAPI.stageCommand(this, new AuthenticateCommand(credentials)), displayMessageResponse -> {
-            id = Integer.parseInt(Objects.requireNonNull(displayMessageResponse.getSource().getValue3(), "id is null"));
+            APIMessage source = displayMessageResponse.getSource();
+            if (source.getValue3() != null) {
+                id = Integer.parseInt(source.getValue3());
+            } else {
+                LOGGER.warn("No id in authenticate response");
+                id = 0;
+            }
             storedCredentials = credentials;
         });
     }
@@ -393,10 +399,21 @@ public class ProxyAPIImpl implements ProxyAPI {
     }
 
     @Override
+    public void attemptClose() {
+        janitor();
+        if (responseFutures.isEmpty() && requestQueue.isEmpty() && unexpectedCommandQueue.isEmpty()) {
+            close();
+        } else {
+            LOGGER.warn("Attempted to close, but there are still requests in the queue!");
+        }
+    }
+
+
+    @Override
     public void awaitSession() {
         while (!checkSession()) {
             try {
-                wait(1000); //auto check
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

@@ -4,6 +4,8 @@ import org.checkerframework.checker.units.qual.N;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -36,6 +38,16 @@ public class RESTExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public @NotNull ResponseEntity<RESTErrorResponse> handleException(@NotNull final IllegalArgumentException e) {
+        return toResponseEntity(RESTError.INVALID_ARGUMENT, e);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public @NotNull ResponseEntity<RESTErrorResponse> handleException(@NotNull final HttpRequestMethodNotSupportedException e) {
+        return toResponseEntity(RESTError.METHOD_NOT_ALLOWED, e);
+    }
+
+    @ExceptionHandler(ServletRequestBindingException.class)
+    public @NotNull ResponseEntity<RESTErrorResponse> handleException(@NotNull final ServletRequestBindingException e) {
         return toResponseEntity(RESTError.INVALID_ARGUMENT, e);
     }
 

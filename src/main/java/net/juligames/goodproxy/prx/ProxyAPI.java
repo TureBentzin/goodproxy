@@ -9,6 +9,7 @@ import net.juligames.goodproxy.websoc.command.v1.response.EchoResponse;
 import net.juligames.goodproxy.websoc.command.v1.response.InboxResponse;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.WillClose;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Queue;
@@ -71,6 +72,9 @@ public interface ProxyAPI extends Closeable {
     boolean isWaiting();
 
     void setWaiting(boolean waiting);
+
+    @WillClose
+    void attemptClose();
 
     void awaitSession();
 
