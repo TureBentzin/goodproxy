@@ -28,6 +28,13 @@ public class RESTExceptionHandler {
 
     @ExceptionHandler(ExecutionException.class)
     public @NotNull ResponseEntity<RESTErrorResponse> handleException(@NotNull final ExecutionException e) {
+        Throwable cause = e.getCause();
+        while (cause != null && !(cause instanceof TimeoutException)) {
+            cause = cause.getCause();
+        }
+        if (cause != null) {
+            return toResponseEntity(RESTError.TIMEOUT, (TimeoutException) cause);
+        }
         return toResponseEntity(RESTError.EXECUTION_FAILED, e);
     }
 

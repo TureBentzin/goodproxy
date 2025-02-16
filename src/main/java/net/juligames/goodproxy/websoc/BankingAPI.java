@@ -161,10 +161,17 @@ public class BankingAPI {
         if (remove == null) {
             LOGGER.warn("Tried to unregister a proxyAPI that was not registered!");
         } else {
-            remove.janitor();
             remove.close();
         }
+    }
 
+    public static void callJanitor(@NotNull String sessionID) {
+        ProxyAPIImpl remove = activeAPISessions.get(sessionID);
+        if (remove == null) {
+            LOGGER.warn("Tried to call janitor on a proxyAPI that was not registered!");
+        } else {
+            remove.janitor();
+        }
     }
 
 

@@ -271,6 +271,16 @@ public class ProxyAPIImpl implements ProxyAPI {
         return getInboxMessageInternal(credentials, messageID, privateMessage);
     }
 
+    @Override
+    public @NotNull Future<InboxResponse> getInboxMessage(int messageID) {
+        return getInboxMessage(credentials(), messageID, false);
+    }
+
+    @Override
+    public @NotNull Future<InboxResponse> getInboxMessage(int messageID, boolean privateMessage) {
+        return getInboxMessage(credentials(), messageID, privateMessage);
+    }
+
     private @NotNull CompletableFuture<InboxResponse> getInboxMessageInternal(@NotNull Credentials credentials, int messageID, boolean privateMessage) {
         return async(() -> (InboxResponse) BankingAPI.stageCommand(this, new GetInboxCommand(credentials, messageID, privateMessage)).get());
     }
@@ -287,11 +297,21 @@ public class ProxyAPIImpl implements ProxyAPI {
         return async(logger -> getInboxInternal(credentials, privateMessage).thenCompose(messageWithPayload -> {
             int messageCount = messageWithPayload.getPayload();
             List<String> messages = new ArrayList<>();
-            for (int i = 0; i < messageCount; i++) {
+            for (int i = 1; i <= messageCount; i++) {
                 getInboxMessageInternal(credentials, i, privateMessage).thenAccept(inboxResponse -> messages.add(inboxResponse.getMessage()));
             }
             return CompletableFuture.completedFuture(messages);
         }).get());
+    }
+
+    @Override
+    public @NotNull Future<List<String>> getInboxAll() {
+        return getInboxAll(credentials());
+    }
+
+    @Override
+    public @NotNull Future<List<String>> getInboxAll(boolean privateMessage) {
+        return getInboxAll(credentials(), privateMessage);
     }
 
     @Override

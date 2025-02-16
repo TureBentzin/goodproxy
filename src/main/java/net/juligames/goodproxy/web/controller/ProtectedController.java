@@ -3,19 +3,26 @@ package net.juligames.goodproxy.web.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import net.juligames.goodproxy.displaymessage.DisplayMessage;
 import net.juligames.goodproxy.prx.ProxyAPI;
 import net.juligames.goodproxy.web.filter.JwtFilter;
+import net.juligames.goodproxy.web.schema.InboxIndex;
+import net.juligames.goodproxy.web.schema.PayResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.bind.annotation.*;
 
-import javax.security.auth.login.AccountNotFoundException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/api/v0/protected")
 @SecurityRequirement(name = "bearerAuth")
 public class ProtectedController {
 
+    private final @NotNull Logger logger = LogManager.getLogger(ProtectedController.class);
     private final @NotNull JwtFilter jwtFilter;
 
     public ProtectedController(@NotNull JwtFilter jwtFilter) {
@@ -35,6 +42,28 @@ public class ProtectedController {
     public double balance(@Parameter(hidden = true) @RequestHeader("Authorization") @NotNull String token) throws ExecutionException, InterruptedException {
         ProxyAPI proxyAPI = getProxyAPIFromHeader(token);
         return proxyAPI.balance().get().getPayload();
+    }
+
+    @Operation(summary = "Pay another user a specified amount",
+            description = "Pays another user the specified amount")
+    @GetMapping("/pay")
+    public @NotNull PayResult pay(@Parameter(hidden = true) @RequestHeader("Authorization") @NotNull String token,
+                                  @RequestParam @NotNull String receiver,
+                                  @RequestParam int amount) throws ExecutionException, InterruptedException {
+        ProxyAPI proxyAPI = getProxyAPIFromHeader(token);
+        DisplayMessage displayMessage = proxyAPI.pay(receiver, amount).get();
+        boolean success = "pay.success".equals(displayMessage.key());
+        return new PayResult(receiver, amount, success, displayMessage.key(), displayMessage.message());
+    }
+
+    @Operation(summary = "Get your inbox")
+    @GetMapping("/inbox")
+    public @NotNull List<InboxIndex> inbox(@Parameter(hidden = true) @RequestHeader("Authorization") @NotNull String token, boolean privateMessages) throws ExecutionException, InterruptedException {
+        ProxyAPI proxyAPI = getProxyAPIFromHeader(token);
+        List<String> strings = proxyAPI.getInboxAll().get();
+        logger.debug("Got {} messages from the inbox", strings.size());
+        AtomicInteger id = new AtomicInteger(1);
+        return strings.stream().map(s -> new InboxIndex(id.getAndIncrement(), privateMessages)).toList();
     }
 
 

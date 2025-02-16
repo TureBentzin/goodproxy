@@ -2,6 +2,7 @@ package net.juligames.goodproxy.websoc;
 
 import com.google.gson.JsonSyntaxException;
 import jakarta.websocket.*;
+import net.juligames.goodproxy.prx.ProxyAPIImpl;
 import net.juligames.goodproxy.websoc.command.APIMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,6 +57,7 @@ public class BankClient {
     public void onClose() {
         LOGGER.info("Connection closed");
       //  ThreadContext.remove("sessionId");
+        BankingAPI.callJanitor(session().getId());
     }
 
     @OnError

@@ -51,9 +51,17 @@ public interface ProxyAPI extends Closeable {
 
     @NotNull Future<InboxResponse> getInboxMessage(@NotNull Credentials credentials, int messageID, boolean privateMessage);
 
+    @NotNull Future<InboxResponse> getInboxMessage(int messageID);
+
+    @NotNull Future<InboxResponse> getInboxMessage(int messageID, boolean privateMessage);
+
     @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials);
 
     @NotNull Future<List<String>> getInboxAll(@NotNull Credentials credentials, boolean privateMessage);
+
+    @NotNull Future<List<String>> getInboxAll();
+
+    @NotNull Future<List<String>> getInboxAll(boolean privateMessage);
 
     @NotNull Future<EchoResponse> echo(@NotNull String message);
 
